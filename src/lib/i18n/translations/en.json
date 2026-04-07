@@ -1,0 +1,86 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Operation successful",
+    "confirm": "Confirm",
+    "search": "Search",
+    "noResults": "No results",
+    "back": "Back"
+  },
+  "nav": {
+    "dashboard": "Home",
+    "topics": "Topics",
+    "logout": "Sign out",
+    "settings": "Settings"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signInWith": "Sign in with U-Pasaporte / VTI",
+    "email": "Email",
+    "password": "Password",
+    "orDivider": "or sign in with credentials",
+    "invalidCredentials": "Invalid credentials",
+    "title": "Department Council",
+    "subtitle": "Department of Computer Science"
+  },
+  "topics": {
+    "title": "Council Topics",
+    "newTopic": "New Topic",
+    "editTopic": "Edit Topic",
+    "topicTitle": "Title",
+    "description": "Description",
+    "status": "Status",
+    "priority": "Priority",
+    "author": "Author",
+    "createdAt": "Created",
+    "attachments": "Attachments",
+    "addAttachment": "Add attachment",
+    "pendingApproval": "Pending approval",
+    "discussing": "Discussing",
+    "aprobado": "Approved",
+    "rechazado": "Rejected",
+    "noTopics": "No topics yet",
+    "approve": "Approve",
+    "reject": "Reject",
+    "pendingVote": "Vote pending",
+    "voted": "Already voted",
+    "totalVotes": "votes",
+    "unreadMessages": "unread messages",
+    "proposeTopic": "Propose topic"
+  },
+  "votes": {
+    "inFavor": "In favor",
+    "against": "Against",
+    "moreData": "Request more data",
+    "yourVote": "Your vote",
+    "results": "Results",
+    "changeVote": "Change vote"
+  },
+  "comments": {
+    "title": "Discussion",
+    "placeholder": "Write a comment...",
+    "send": "Send",
+    "noComments": "No comments yet"
+  },
+  "dashboard": {
+    "welcome": "Welcome to the Department Council",
+    "pendingTopics": "Pending topics",
+    "activeDiscussions": "Active discussions",
+    "myPendingVotes": "My pending votes",
+    "recentActivity": "Recent activity"
+  },
+  "roles": {
+    "DIRECTOR": "Director",
+    "JEFE_DOCENTE": "Head of Teaching",
+    "CONSEJERO": "Council Member",
+    "INVITADO": "Guest",
+    "PROFESOR": "Professor"
+  }
+}

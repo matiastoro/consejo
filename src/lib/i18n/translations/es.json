@@ -1,0 +1,86 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Operación exitosa",
+    "confirm": "Confirmar",
+    "search": "Buscar",
+    "noResults": "Sin resultados",
+    "back": "Volver"
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "topics": "Temas",
+    "logout": "Cerrar sesión",
+    "settings": "Configuración"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signInWith": "Autenticarse con U-Pasaporte / VTI",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "orDivider": "o inicia sesión con credenciales",
+    "invalidCredentials": "Credenciales inválidas",
+    "title": "Consejo Departamental",
+    "subtitle": "Departamento de Ciencias de la Computación"
+  },
+  "topics": {
+    "title": "Temas del Consejo",
+    "newTopic": "Nuevo Tema",
+    "editTopic": "Editar Tema",
+    "topicTitle": "Título",
+    "description": "Descripción",
+    "status": "Estado",
+    "priority": "Prioridad",
+    "author": "Autor",
+    "createdAt": "Creado",
+    "attachments": "Adjuntos",
+    "addAttachment": "Agregar adjunto",
+    "pendingApproval": "Pendiente de aprobación",
+    "discussing": "En discusión",
+    "aprobado": "Aprobado",
+    "rechazado": "Rechazado",
+    "noTopics": "No hay temas aún",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "pendingVote": "Voto pendiente",
+    "voted": "Ya votaste",
+    "totalVotes": "votos",
+    "unreadMessages": "mensajes sin leer",
+    "proposeTopic": "Proponer tema"
+  },
+  "votes": {
+    "inFavor": "A favor",
+    "against": "En contra",
+    "moreData": "Solicitar más datos",
+    "yourVote": "Tu voto",
+    "results": "Resultados",
+    "changeVote": "Cambiar voto"
+  },
+  "comments": {
+    "title": "Discusión",
+    "placeholder": "Escribe un comentario...",
+    "send": "Enviar",
+    "noComments": "No hay comentarios aún"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido al Consejo Departamental",
+    "pendingTopics": "Temas pendientes",
+    "activeDiscussions": "Discusiones activas",
+    "myPendingVotes": "Mis votos pendientes",
+    "recentActivity": "Actividad reciente"
+  },
+  "roles": {
+    "DIRECTOR": "Director",
+    "JEFE_DOCENTE": "Jefe Docente",
+    "CONSEJERO": "Consejero",
+    "INVITADO": "Invitado",
+    "PROFESOR": "Profesor"
+  }
+}
