@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   if (!canCreateTopics(user.roles)) return forbidden();
 
   const body = await request.json();
-  const { title, description } = body;
+  const { title, description, inPersonOnly, requiresProvisionalVote } = body;
 
   if (!title || !description) {
     return NextResponse.json(
@@ -84,11 +84,34 @@ export async function POST(request: NextRequest) {
       description,
       status,
       authorId: user.id,
+      inPersonOnly: !!inPersonOnly,
+      requiresProvisionalVote: !!requiresProvisionalVote,
     },
     include: {
       author: { select: { id: true, name: true, roles: true } },
     },
   });
+
+  // Notify voters about new topic
+  const voters = await prisma.user.findMany({
+    where: {
+      roles: { hasSome: ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"] },
+      id: { not: user.id },
+    },
+    select: { id: true },
+  });
+
+  if (voters.length > 0) {
+    await prisma.notification.createMany({
+      data: voters.map((v) => ({
+        userId: v.id,
+        type: "TOPIC_CREATED" as const,
+        title: "Nuevo tema propuesto",
+        message: `${user.name} propuso: "${title}"`,
+        topicId: topic.id,
+      })),
+    });
+  }
 
   return NextResponse.json(topic, { status: 201 });
 }

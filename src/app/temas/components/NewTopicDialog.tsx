@@ -9,6 +9,8 @@ import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import CircularProgress from "@mui/material/CircularProgress";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
@@ -24,6 +26,8 @@ export default function NewTopicDialog({ open, onClose, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [inPersonOnly, setInPersonOnly] = useState(false);
+  const [requiresProvisionalVote, setRequiresProvisionalVote] = useState(false);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +38,12 @@ export default function NewTopicDialog({ open, onClose, onCreated }: Props) {
     const res = await fetch("/api/topics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+      body: JSON.stringify({
+        title: title.trim(),
+        description: description.trim(),
+        inPersonOnly,
+        requiresProvisionalVote,
+      }),
     });
 
     if (res.ok) {
@@ -52,6 +61,8 @@ export default function NewTopicDialog({ open, onClose, onCreated }: Props) {
       setTitle("");
       setDescription("");
       setFiles([]);
+      setInPersonOnly(false);
+      setRequiresProvisionalVote(false);
       onCreated();
     }
     setLoading(false);
@@ -88,6 +99,27 @@ export default function NewTopicDialog({ open, onClose, onCreated }: Props) {
           onChange={(e) => setDescription(e.target.value)}
           sx={{ mb: 2 }}
         />
+
+        <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={inPersonOnly}
+                onChange={(e) => setInPersonOnly(e.target.checked)}
+              />
+            }
+            label="Solo discusión presencial (sin votación online)"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={requiresProvisionalVote}
+                onChange={(e) => setRequiresProvisionalVote(e.target.checked)}
+              />
+            }
+            label="Requiere voto provisorio"
+          />
+        </Box>
 
         <input
           ref={fileInputRef}

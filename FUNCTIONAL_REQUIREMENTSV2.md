@@ -1,0 +1,10 @@
+- Crear concepto de sesion donde se discuten una lista de temas. En particular se ven todos en una sesion, y se van marcando los que se van discutiendo.
+- Marcar tema para discutir personalmente. No deberia votarse online. Poner resolucion manualmente por parte del director o admin. Eso significa voto y comentarios adicionales.
+- Generar acta con los temas discutidos y votados en una sesion, en formato PDF.
+- Permitir cambiar la redaccion de un tema.
+- Poder reiniciar la votacion y discusion de un tema (solo el director o admin)
+- Notificaciones
+- Poder añadir avances (apuntes) sobre los temas para discutir en una sesion.
+- Marcar que temas se discutieron en una sesion.
+- Voto provisorio o informar para ver si se sigue discutiendo o no. Es un voto previo a la votacion final. Marcar los temas que requieren votos provisorios.
+- eliminar tema.

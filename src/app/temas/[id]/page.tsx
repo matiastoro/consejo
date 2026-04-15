@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,6 +9,8 @@ import VotePanel from "./components/VotePanel";
 import CommentSection from "./components/CommentSection";
 import EditTopicDialog from "./components/EditTopicDialog";
 import CloseTopicDialog from "./components/CloseTopicDialog";
+import TopicNotes from "./components/TopicNotes";
+import ProvisionalVotePanel from "./components/ProvisionalVotePanel";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -22,6 +24,10 @@ import Collapse from "@mui/material/Collapse";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -31,6 +37,10 @@ import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
+import BallotIcon from "@mui/icons-material/Ballot";
 
 interface HistoryEntry {
   id: string;
@@ -47,6 +57,8 @@ interface TopicDetail {
   description: string;
   status: string;
   priority: number;
+  inPersonOnly: boolean;
+  requiresProvisionalVote: boolean;
   author: { id: string; name: string; roles: string[] };
   createdAt: string;
   resolution: string | null;
@@ -63,8 +75,20 @@ interface TopicDetail {
     createdAt: string;
     user: { id: string; name: string; roles: string[] };
   }[];
+  notes: {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: { id: string; name: string; roles: string[]; image?: string | null };
+  }[];
+  provisionalVotes: {
+    id: string;
+    voteType: string;
+    user: { id: string; name: string; roles: string[] };
+  }[];
   history: HistoryEntry[];
   myVote: string | null;
+  myProvisionalVote: string | null;
 }
 
 const fieldLabels: Record<string, string> = {
@@ -85,13 +109,18 @@ export default function TopicDetailPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const topicId = params.id as string;
   const { t } = useI18n();
+  const fromSessionId = searchParams.get("sessionId");
+  const backUrl = fromSessionId ? `/sesiones/${fromSessionId}` : "/temas";
   const [topic, setTopic] = useState<TopicDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const isAdminUser = (session?.user as any)?.isAdmin as boolean | undefined;
@@ -129,8 +158,19 @@ export default function TopicDetailPage() {
     if (approved) {
       fetchTopic();
     } else {
-      router.push("/temas");
+      router.push(backUrl);
     }
+  };
+
+  const handleReset = async () => {
+    await fetch(`/api/topics/${topicId}/reset`, { method: "POST" });
+    setResetConfirmOpen(false);
+    fetchTopic();
+  };
+
+  const handleDelete = async () => {
+    await fetch(`/api/topics/${topicId}`, { method: "DELETE" });
+    router.push(backUrl);
   };
 
   if (authStatus === "loading" || loading) {
@@ -157,13 +197,31 @@ export default function TopicDetailPage() {
 
   return (
     <DashboardLayout>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-        <IconButton onClick={() => router.push("/temas")}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3, flexWrap: "wrap" }}>
+        <IconButton onClick={() => router.push(backUrl)}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h5" sx={{ flex: 1 }}>
           {topic.title}
         </Typography>
+        {topic.inPersonOnly && (
+          <Chip
+            icon={<PersonIcon />}
+            label="Solo presencial"
+            color="secondary"
+            size="small"
+            variant="outlined"
+          />
+        )}
+        {topic.requiresProvisionalVote && (
+          <Chip
+            icon={<BallotIcon />}
+            label="Voto provisorio"
+            color="warning"
+            size="small"
+            variant="outlined"
+          />
+        )}
         {isDir && topic.status === "DISCUSSING" && (
           <Button
             variant="outlined"
@@ -174,9 +232,25 @@ export default function TopicDetailPage() {
             Resolver tema
           </Button>
         )}
+        {isDir && (
+          <Button
+            variant="outlined"
+            size="small"
+            color="warning"
+            startIcon={<RestartAltIcon />}
+            onClick={() => setResetConfirmOpen(true)}
+          >
+            Reiniciar
+          </Button>
+        )}
         {canEdit && (
           <IconButton onClick={() => setEditOpen(true)}>
             <EditIcon />
+          </IconButton>
+        )}
+        {canEdit && (
+          <IconButton color="error" onClick={() => setDeleteConfirmOpen(true)}>
+            <DeleteIcon />
           </IconButton>
         )}
         <Chip
@@ -286,7 +360,20 @@ export default function TopicDetailPage() {
         </Card>
       )}
 
-      {topic.status === "DISCUSSING" && (
+      {topic.requiresProvisionalVote && topic.status === "DISCUSSING" && (
+        <>
+          <ProvisionalVotePanel
+            topicId={topicId}
+            provisionalVotes={topic.provisionalVotes}
+            myProvisionalVote={topic.myProvisionalVote}
+            canVote={!!canVoteUser}
+            onVoted={fetchTopic}
+          />
+          <Divider sx={{ my: 3 }} />
+        </>
+      )}
+
+      {topic.status === "DISCUSSING" && !topic.inPersonOnly && (
         <>
           <VotePanel
             topicId={topicId}
@@ -299,6 +386,30 @@ export default function TopicDetailPage() {
           <Divider sx={{ my: 3 }} />
         </>
       )}
+
+      {topic.inPersonOnly && topic.status === "DISCUSSING" && (
+        <Card sx={{ mb: 3, bgcolor: "secondary.main", color: "secondary.contrastText" }}>
+          <CardContent>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <PersonIcon />
+              <Typography sx={{ fontWeight: 600 }}>
+                Este tema se discute presencialmente
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+              La votación online está deshabilitada. El director registrará la resolución manualmente.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      <TopicNotes
+        topicId={topicId}
+        notes={topic.notes}
+        onNoteAdded={fetchTopic}
+      />
+
+      <Divider sx={{ my: 3 }} />
 
       <CommentSection
         topicId={topicId}
@@ -383,6 +494,36 @@ export default function TopicDetailPage() {
         }}
         topicId={topicId}
       />
+
+      <Dialog open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)}>
+        <DialogTitle>Reiniciar votación y discusión</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Se eliminarán todos los votos (finales y provisorios) y comentarios de este tema. El tema volverá al estado &ldquo;En discusión&rdquo;. Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetConfirmOpen(false)}>Cancelar</Button>
+          <Button variant="contained" color="warning" onClick={handleReset}>
+            Reiniciar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Eliminar tema</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Se eliminará permanentemente este tema, incluyendo todos sus votos, comentarios y archivos adjuntos. Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancelar</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   );
 }

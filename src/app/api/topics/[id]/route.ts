@@ -34,6 +34,17 @@ export async function GET(
         },
         orderBy: { createdAt: "desc" },
       },
+      notes: {
+        include: {
+          user: { select: { id: true, name: true, roles: true, image: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      provisionalVotes: {
+        include: {
+          user: { select: { id: true, name: true, roles: true, image: true } },
+        },
+      },
     },
   });
 
@@ -48,10 +59,12 @@ export async function GET(
   });
 
   const myVote = topic.votes.find((v) => v.userId === user.id);
+  const myProvisionalVote = topic.provisionalVotes.find((v) => v.userId === user.id);
 
   return NextResponse.json({
     ...topic,
     myVote: myVote?.voteType ?? null,
+    myProvisionalVote: myProvisionalVote?.voteType ?? null,
   });
 }
 
@@ -78,7 +91,7 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { title, description, status } = body;
+  const { title, description, status, inPersonOnly, requiresProvisionalVote, resolution } = body;
 
   // Build history entries for changed fields
   const historyEntries: { field: string; oldValue: string | null; newValue: string | null }[] = [];
@@ -99,6 +112,9 @@ export async function PUT(
       ...(title && { title }),
       ...(description && { description }),
       ...(status && { status }),
+      ...(inPersonOnly !== undefined && { inPersonOnly }),
+      ...(requiresProvisionalVote !== undefined && { requiresProvisionalVote }),
+      ...(resolution !== undefined && { resolution }),
     },
     include: {
       author: { select: { id: true, name: true, roles: true, image: true } },

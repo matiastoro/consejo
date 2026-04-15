@@ -25,6 +25,23 @@ enum TopicStatus {
   RECHAZADO
 }
 
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NotificationType {
+  TOPIC_CREATED
+  TOPIC_APPROVED
+  TOPIC_CLOSED
+  VOTE_CAST
+  COMMENT_ADDED
+  SESSION_SCHEDULED
+  SESSION_STARTED
+  PROVISIONAL_VOTE_REQUESTED
+}
+
 enum VoteType {
   A_FAVOR
   EN_CONTRA
@@ -53,11 +70,15 @@ model User {
   sessions Session[]
   profile  Profile?
 
-  topicsCreated  Topic[]        @relation("TopicAuthor")
-  votes          Vote[]
-  comments       Comment[]
-  readStatuses   TopicReadStatus[]
-  topicEdits     TopicHistory[]
+  topicsCreated    Topic[]          @relation("TopicAuthor")
+  votes            Vote[]
+  comments         Comment[]
+  readStatuses     TopicReadStatus[]
+  topicEdits       TopicHistory[]
+  topicNotes       TopicNote[]
+  provisionalVotes ProvisionalVote[]
+  notifications    Notification[]
+  sessionsCreated  CouncilSession[] @relation("SessionCreator")
 
   @@map("users")
 }
@@ -116,24 +137,29 @@ model Profile {
 // ============================================
 
 model Topic {
-  id          String      @id @default(cuid())
-  title       String
-  description String      @db.Text
-  status      TopicStatus @default(PENDING_APPROVAL)
-  priority    Int         @default(0)
-  resolution  String?     @db.Text
-  closedById  String?
-  closedAt    DateTime?
-  authorId    String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                     String      @id @default(cuid())
+  title                  String
+  description            String      @db.Text
+  status                 TopicStatus @default(PENDING_APPROVAL)
+  priority               Int         @default(0)
+  resolution             String?     @db.Text
+  closedById             String?
+  closedAt               DateTime?
+  authorId               String
+  inPersonOnly           Boolean     @default(false)
+  requiresProvisionalVote Boolean    @default(false)
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
 
-  author       User         @relation("TopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  attachments  Attachment[]
-  votes        Vote[]
-  comments     Comment[]
-  readStatuses TopicReadStatus[]
-  history      TopicHistory[]
+  author           User              @relation("TopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  attachments      Attachment[]
+  votes            Vote[]
+  comments         Comment[]
+  readStatuses     TopicReadStatus[]
+  history          TopicHistory[]
+  notes            TopicNote[]
+  provisionalVotes ProvisionalVote[]
+  sessionTopics    SessionTopic[]
 
   @@map("topics")
 }
@@ -208,4 +234,96 @@ model TopicReadStatus {
 
   @@unique([topicId, userId])
   @@map("topic_read_statuses")
+}
+
+// ============================================
+// TOPIC NOTES (avances/apuntes)
+// ============================================
+
+model TopicNote {
+  id        String   @id @default(cuid())
+  topicId   String
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("topic_notes")
+}
+
+// ============================================
+// PROVISIONAL VOTES
+// ============================================
+
+model ProvisionalVote {
+  id        String   @id @default(cuid())
+  topicId   String
+  userId    String
+  voteType  VoteType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, userId])
+  @@map("provisional_votes")
+}
+
+// ============================================
+// COUNCIL SESSIONS
+// ============================================
+
+model CouncilSession {
+  id          String        @id @default(cuid())
+  title       String
+  date        DateTime
+  status      SessionStatus @default(SCHEDULED)
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  createdBy User           @relation("SessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  topics    SessionTopic[]
+
+  @@map("council_sessions")
+}
+
+model SessionTopic {
+  id          String    @id @default(cuid())
+  sessionId   String
+  topicId     String
+  order       Int       @default(0)
+  discussed   Boolean   @default(false)
+  discussedAt DateTime?
+
+  session CouncilSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  topic   Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, topicId])
+  @@map("session_topics")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  topicId   String?
+  sessionId String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
 }

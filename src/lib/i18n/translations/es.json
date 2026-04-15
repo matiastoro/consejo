@@ -17,8 +17,10 @@
   "nav": {
     "dashboard": "Inicio",
     "topics": "Temas",
+    "sessions": "Sesiones",
     "logout": "Cerrar sesión",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "notifications": "Notificaciones"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -53,7 +55,12 @@
     "voted": "Ya votaste",
     "totalVotes": "votos",
     "unreadMessages": "mensajes sin leer",
-    "proposeTopic": "Proponer tema"
+    "proposeTopic": "Proponer tema",
+    "inPersonOnly": "Solo presencial",
+    "provisionalVote": "Voto provisorio",
+    "reset": "Reiniciar",
+    "deleteTopic": "Eliminar tema",
+    "notes": "Avances"
   },
   "votes": {
     "inFavor": "A favor",
@@ -74,7 +81,27 @@
     "pendingTopics": "Temas pendientes",
     "activeDiscussions": "Discusiones activas",
     "myPendingVotes": "Mis votos pendientes",
-    "recentActivity": "Actividad reciente"
+    "recentActivity": "Actividad reciente",
+    "upcomingSessions": "Próximas sesiones"
+  },
+  "sessions": {
+    "title": "Sesiones del Consejo",
+    "newSession": "Nueva Sesión",
+    "scheduled": "Programada",
+    "inProgress": "En curso",
+    "completed": "Completada",
+    "noSessions": "No hay sesiones",
+    "startSession": "Iniciar sesión",
+    "completeSession": "Completar sesión",
+    "addTopic": "Agregar tema",
+    "generateActa": "Generar acta",
+    "discussed": "Discutido",
+    "notDiscussed": "No discutido"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todas como leídas",
+    "noNotifications": "Sin notificaciones"
   },
   "roles": {
     "DIRECTOR": "Director",

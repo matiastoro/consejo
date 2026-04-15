@@ -17,8 +17,10 @@
   "nav": {
     "dashboard": "Home",
     "topics": "Topics",
+    "sessions": "Sessions",
     "logout": "Sign out",
-    "settings": "Settings"
+    "settings": "Settings",
+    "notifications": "Notifications"
   },
   "auth": {
     "signIn": "Sign in",
@@ -53,7 +55,12 @@
     "voted": "Already voted",
     "totalVotes": "votes",
     "unreadMessages": "unread messages",
-    "proposeTopic": "Propose topic"
+    "proposeTopic": "Propose topic",
+    "inPersonOnly": "In-person only",
+    "provisionalVote": "Provisional vote",
+    "reset": "Reset",
+    "deleteTopic": "Delete topic",
+    "notes": "Notes"
   },
   "votes": {
     "inFavor": "In favor",
@@ -74,7 +81,27 @@
     "pendingTopics": "Pending topics",
     "activeDiscussions": "Active discussions",
     "myPendingVotes": "My pending votes",
-    "recentActivity": "Recent activity"
+    "recentActivity": "Recent activity",
+    "upcomingSessions": "Upcoming sessions"
+  },
+  "sessions": {
+    "title": "Council Sessions",
+    "newSession": "New Session",
+    "scheduled": "Scheduled",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "noSessions": "No sessions",
+    "startSession": "Start session",
+    "completeSession": "Complete session",
+    "addTopic": "Add topic",
+    "generateActa": "Generate minutes",
+    "discussed": "Discussed",
+    "notDiscussed": "Not discussed"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications"
   },
   "roles": {
     "DIRECTOR": "Director",
