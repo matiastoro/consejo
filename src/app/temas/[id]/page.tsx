@@ -373,7 +373,7 @@ export default function TopicDetailPage() {
         </>
       )}
 
-      {topic.status === "DISCUSSING" && !topic.inPersonOnly && (
+      {topic.status === "DISCUSSING" && !topic.inPersonOnly && !topic.requiresProvisionalVote && (
         <>
           <VotePanel
             topicId={topicId}
@@ -493,6 +493,7 @@ export default function TopicDetailPage() {
           fetchTopic();
         }}
         topicId={topicId}
+        sessionId={fromSessionId}
       />
 
       <Dialog open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)}>

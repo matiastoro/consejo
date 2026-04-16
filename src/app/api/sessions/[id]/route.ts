@@ -23,10 +23,13 @@ export async function GET(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Get ALL discussing topics (the full agenda)
+  // Get pending topics (DISCUSSING) + topics resolved in THIS session
   const allTopics = await prisma.topic.findMany({
     where: {
-      status: { in: ["DISCUSSING", "APROBADO", "RECHAZADO"] },
+      OR: [
+        { status: "DISCUSSING" },
+        { status: { in: ["APROBADO", "RECHAZADO"] }, resolvedInSessionId: id },
+      ],
     },
     include: {
       author: { select: { id: true, name: true, roles: true } },

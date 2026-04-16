@@ -15,7 +15,7 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json();
-  const { status, resolution } = body as { status: "APROBADO" | "RECHAZADO"; resolution?: string };
+  const { status, resolution, sessionId } = body as { status: "APROBADO" | "RECHAZADO"; resolution?: string; sessionId?: string };
 
   if (status !== "APROBADO" && status !== "RECHAZADO") {
     return NextResponse.json({ error: "Status must be APROBADO or RECHAZADO" }, { status: 400 });
@@ -37,8 +37,18 @@ export async function POST(
       resolution: resolution?.trim() || null,
       closedById: user.id,
       closedAt: new Date(),
+      ...(sessionId && { resolvedInSessionId: sessionId }),
     },
   });
+
+  // Mark as discussed in the session
+  if (sessionId) {
+    await prisma.sessionTopic.upsert({
+      where: { sessionId_topicId: { sessionId, topicId: id } },
+      update: { discussed: true, discussedAt: new Date() },
+      create: { sessionId, topicId: id, discussed: true, discussedAt: new Date() },
+    });
+  }
 
   await prisma.topicHistory.create({
     data: {

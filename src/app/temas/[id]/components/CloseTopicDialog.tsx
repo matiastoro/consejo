@@ -19,9 +19,10 @@ interface Props {
   onClose: () => void;
   onClosed: () => void;
   topicId: string;
+  sessionId?: string | null;
 }
 
-export default function CloseTopicDialog({ open, onClose, onClosed, topicId }: Props) {
+export default function CloseTopicDialog({ open, onClose, onClosed, topicId, sessionId }: Props) {
   const [status, setStatus] = useState<"APROBADO" | "RECHAZADO" | null>(null);
   const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,11 @@ export default function CloseTopicDialog({ open, onClose, onClosed, topicId }: P
     const res = await fetch(`/api/topics/${topicId}/close`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, resolution: resolution.trim() || undefined }),
+      body: JSON.stringify({
+        status,
+        resolution: resolution.trim() || undefined,
+        ...(sessionId && { sessionId }),
+      }),
     });
 
     setLoading(false);

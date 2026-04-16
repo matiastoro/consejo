@@ -351,6 +351,23 @@ function renderTopicContent(st: TopicInSession) {
         >
           {topic.title}
         </Typography>
+        <Chip
+          label={
+            topic.status === "APROBADO"
+              ? "Aprobado"
+              : topic.status === "RECHAZADO"
+              ? "Rechazado"
+              : "En discusión"
+          }
+          size="small"
+          color={
+            topic.status === "APROBADO"
+              ? "success"
+              : topic.status === "RECHAZADO"
+              ? "error"
+              : "info"
+          }
+        />
         {topic.inPersonOnly && (
           <Tooltip title="Solo discusión presencial">
             <Chip

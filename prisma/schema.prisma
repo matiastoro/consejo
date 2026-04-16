@@ -148,10 +148,12 @@ model Topic {
   authorId               String
   inPersonOnly           Boolean     @default(false)
   requiresProvisionalVote Boolean    @default(false)
+  resolvedInSessionId    String?
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
 
   author           User              @relation("TopicAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  resolvedInSession CouncilSession?  @relation("TopicsResolvedInSession", fields: [resolvedInSessionId], references: [id], onDelete: SetNull)
   attachments      Attachment[]
   votes            Vote[]
   comments         Comment[]
@@ -286,8 +288,9 @@ model CouncilSession {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  createdBy User           @relation("SessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  topics    SessionTopic[]
+  createdBy      User           @relation("SessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  topics         SessionTopic[]
+  resolvedTopics Topic[]        @relation("TopicsResolvedInSession")
 
   @@map("council_sessions")
 }

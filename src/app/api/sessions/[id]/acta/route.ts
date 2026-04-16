@@ -31,9 +31,9 @@ export async function GET(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Fetch only resolved topics (approved or rejected)
+  // Fetch only topics resolved in THIS session
   const allTopics = await prisma.topic.findMany({
-    where: { status: { in: ["APROBADO", "RECHAZADO"] } },
+    where: { status: { in: ["APROBADO", "RECHAZADO"] }, resolvedInSessionId: id },
     include: {
       author: { select: { name: true } },
       votes: { include: { user: { select: { name: true } } } },
