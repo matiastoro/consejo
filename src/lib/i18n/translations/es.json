@@ -105,6 +105,7 @@
   },
   "roles": {
     "DIRECTOR": "Director",
+    "SUBDIRECTOR": "Subdirector",
     "JEFE_DOCENTE": "Jefe Docente",
     "CONSEJERO": "Consejero",
     "INVITADO": "Invitado",

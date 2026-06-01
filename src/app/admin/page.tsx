@@ -38,10 +38,11 @@ interface UserItem {
   createdAt: string;
 }
 
-const ALL_ROLES = ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
+const ALL_ROLES = ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
 
-const roleColor: Record<string, "error" | "secondary" | "primary" | "default" | "info"> = {
+const roleColor: Record<string, "error" | "secondary" | "primary" | "default" | "info" | "warning"> = {
   DIRECTOR: "error",
+  SUBDIRECTOR: "warning",
   JEFE_DOCENTE: "secondary",
   CONSEJERO: "primary",
   INVITADO: "info",

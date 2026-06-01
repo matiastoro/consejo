@@ -59,7 +59,7 @@ export default function TemasPage() {
   const isAdminUser = (session?.user as any)?.isAdmin as boolean | undefined;
   const isDir = roles?.includes("DIRECTOR") || isAdminUser;
   const canCreate = roles?.some((r: string) =>
-    ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
+    ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 
   const fetchTopics = useCallback(() => {

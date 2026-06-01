@@ -65,6 +65,7 @@ export default function CommentSection({
 
   const roleColor = (roles: string[]) => {
     if (roles.includes("DIRECTOR")) return "#1a5276";
+    if (roles.includes("SUBDIRECTOR")) return "#2874a6";
     if (roles.includes("JEFE_DOCENTE")) return "#7d3c98";
     if (roles.includes("CONSEJERO")) return "#27ae60";
     return "#95a5a6";

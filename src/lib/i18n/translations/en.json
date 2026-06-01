@@ -105,6 +105,7 @@
   },
   "roles": {
     "DIRECTOR": "Director",
+    "SUBDIRECTOR": "Deputy Director",
     "JEFE_DOCENTE": "Head of Teaching",
     "CONSEJERO": "Council Member",
     "INVITADO": "Guest",

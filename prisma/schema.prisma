@@ -12,6 +12,7 @@ datasource db {
 
 enum UserRole {
   DIRECTOR
+  SUBDIRECTOR
   JEFE_DOCENTE
   CONSEJERO
   INVITADO

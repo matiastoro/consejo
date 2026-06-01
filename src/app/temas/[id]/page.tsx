@@ -128,7 +128,7 @@ export default function TopicDetailPage() {
   const isDir = roles?.includes("DIRECTOR") || isAdminUser;
   const canEdit = isDir || topic?.author.id === userId;
   const canVoteUser = roles?.some((r: string) =>
-    ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
+    ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 
   const fetchTopic = useCallback(() => {

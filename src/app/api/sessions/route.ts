@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   // Notify all users with voting roles
   const voters = await prisma.user.findMany({
     where: {
-      roles: { hasSome: ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"] },
+      roles: { hasSome: ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"] },
       id: { not: user.id },
     },
     select: { id: true },

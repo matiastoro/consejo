@@ -5,7 +5,7 @@ import { UserRole } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 
-const VALID_ROLES = ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
+const VALID_ROLES = ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
 
 export async function GET() {
   const user = await getAuthUser();

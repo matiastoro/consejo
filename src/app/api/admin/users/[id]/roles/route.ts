@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized } from "@/lib/session";
 import { UserRole } from "@prisma/client";
 
-const VALID_ROLES = ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
+const VALID_ROLES = ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
 
 export async function PUT(
   request: NextRequest,

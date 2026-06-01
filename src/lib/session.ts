@@ -23,7 +23,7 @@ export function forbidden() {
 
 export function canVote(roles: string[]): boolean {
   return roles.some((r) =>
-    ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
+    ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 }
 
@@ -33,6 +33,6 @@ export function isDirector(roles: string[]): boolean {
 
 export function canCreateTopics(roles: string[]): boolean {
   return roles.some((r) =>
-    ["DIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
+    ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 }
