@@ -11,3 +11,12 @@ Como funciona:
 - Para cada tema, se pueden agregar comentarios tipo chat, y se pueden votar a favor o en contra del tema (o tambien solicitar mas datos).
 - En la lista de temas ver si esta pendiente mi voto, cuanta gente a votado y que mensajes no vistos hay en la discusion.
 - Por cada tema ver quienes han votado a favor, en contra o han solicitado mas datos, y ver los comentarios de la discusion.
+
+
+
+---------
+
+
+---------------
+
+- Agendar una fecha para realizar una sesion. 

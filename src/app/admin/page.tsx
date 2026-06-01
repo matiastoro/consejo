@@ -21,6 +21,11 @@ import MenuItem from "@mui/material/MenuItem";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import CardContent from "@mui/material/CardContent";
 
 interface UserItem {
   id: string;
@@ -51,6 +56,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Formulario de pre-carga de usuarios.
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newRut, setNewRut] = useState("");
+  const [newRoles, setNewRoles] = useState<string[]>(["CONSEJERO"]);
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const isAdmin = (session?.user as any)?.isAdmin as boolean | undefined;
 
@@ -96,6 +110,51 @@ export default function AdminPage() {
     }
   };
 
+  const createUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+
+    if (!newEmail.trim() && !newRut.trim()) {
+      setCreateError("Debes indicar al menos un RUT o un correo");
+      return;
+    }
+    if (newRoles.length === 0) {
+      setCreateError("Debes asignar al menos un rol");
+      return;
+    }
+
+    setCreating(true);
+    const res = await fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        email: newEmail,
+        rut: newRut,
+        roles: newRoles,
+        isAdmin: newIsAdmin,
+      }),
+    });
+    setCreating(false);
+
+    if (res.ok) {
+      const created = await res.json();
+      setUsers((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setNewName("");
+      setNewEmail("");
+      setNewRut("");
+      setNewRoles(["CONSEJERO"]);
+      setNewIsAdmin(false);
+      setSuccess(`Usuario pre-cargado: ${created.name}`);
+      setTimeout(() => setSuccess(null), 3000);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setCreateError(data.error ?? "No se pudo crear el usuario");
+    }
+  };
+
   if (authStatus === "loading" || !isAdmin) return null;
 
   return (
@@ -109,6 +168,108 @@ export default function AdminPage() {
           {success}
         </Alert>
       )}
+
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 0.5 }}>
+            Agregar usuario
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Pre-carga a una persona con su rol. Entrará por SSO y se completarán
+            sus datos en el primer acceso. Indica al menos RUT o correo.
+          </Typography>
+
+          {createError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {createError}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={createUser}>
+            <Stack spacing={2}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  label="Nombre"
+                  size="small"
+                  fullWidth
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <TextField
+                  label="Correo"
+                  type="email"
+                  size="small"
+                  fullWidth
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+                <TextField
+                  label="RUT (sin dígito verificador)"
+                  size="small"
+                  fullWidth
+                  value={newRut}
+                  onChange={(e) => setNewRut(e.target.value)}
+                />
+              </Stack>
+
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+                sx={{ alignItems: { sm: "center" } }}
+              >
+                <Select
+                  multiple
+                  size="small"
+                  value={newRoles}
+                  onChange={(e) => setNewRoles(e.target.value as string[])}
+                  input={<OutlinedInput />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {(selected as string[]).map((role) => (
+                        <Chip
+                          key={role}
+                          label={t(`roles.${role}`)}
+                          size="small"
+                          color={roleColor[role] ?? "default"}
+                          sx={{ height: 24 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                  sx={{ minWidth: 220 }}
+                >
+                  {ALL_ROLES.map((role) => (
+                    <MenuItem key={role} value={role}>
+                      {t(`roles.${role}`)}
+                    </MenuItem>
+                  ))}
+                </Select>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newIsAdmin}
+                      onChange={(e) => setNewIsAdmin(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label="Admin"
+                />
+
+                <Box sx={{ flexGrow: 1 }} />
+
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={creating}
+                >
+                  {creating ? "Agregando..." : "Agregar"}
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <Skeleton variant="rounded" height={300} />

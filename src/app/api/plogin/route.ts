@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { encode } from "next-auth/jwt";
-import * as bcrypt from "bcryptjs";
-import { randomUUID } from "crypto";
 import { fetchPhotoUrl } from "@/lib/ucampus";
 
 function parseVtiRut(identification: string): string {
@@ -53,39 +51,34 @@ export async function GET(request: NextRequest) {
   }
 
   const rut = parseVtiRut(identification);
-
-  let user = await prisma.user.findFirst({
-    where: { rut },
-  });
-
   const email = payload.email as string | undefined;
   const fullName = payload.name as string | undefined;
-  const username = (payload.preferred_username as string | undefined) ?? rut;
+
+  // Allowlist: solo entran usuarios pre-cargados o ya existentes.
+  // Se busca por RUT o correo (al menos uno debe coincidir).
+  let user = await prisma.user.findFirst({
+    where: {
+      OR: [{ rut }, ...(email ? [{ email }] : [])],
+    },
+  });
 
   if (!user) {
-    if (!email) {
-      return NextResponse.redirect(
-        new URL("/auth/signin?error=vti_no_email", base)
-      );
-    }
+    return NextResponse.redirect(
+      new URL("/auth/signin?error=no_autorizado", base)
+    );
+  }
 
-    const unusablePassword = await bcrypt.hash(randomUUID(), 10);
+  // Usuario existente: completar o refrescar datos desde VTI sin tocar roles.
+  const updates: Record<string, unknown> = {};
+  if (!user.rut && rut) updates.rut = rut;
+  if (!user.email && email) updates.email = email;
+  if (fullName && user.name !== fullName) updates.name = fullName;
+  if (fullName && user.fullName !== fullName) updates.fullName = fullName;
 
-    user = await prisma.user.create({
-      data: {
-        name: fullName ?? username,
-        email,
-        fullName: fullName ?? username,
-        rut,
-        password: unusablePassword,
-        roles: ["PROFESOR"],
-        profile: { create: {} },
-      },
-    });
-  } else if (fullName && (user.name !== fullName || user.fullName !== fullName)) {
+  if (Object.keys(updates).length > 0) {
     user = await prisma.user.update({
       where: { id: user.id },
-      data: { name: fullName, fullName },
+      data: updates,
     });
   }
 

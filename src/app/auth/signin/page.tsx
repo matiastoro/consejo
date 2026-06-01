@@ -22,10 +22,15 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
+  const errorMessage =
+    error === "no_autorizado"
+      ? "No tienes acceso a esta plataforma. Contacta a un administrador."
+      : error;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(error);
+  const [authError, setAuthError] = useState<string | null>(errorMessage);
 
   const vtiLoginUrl = process.env.NEXT_PUBLIC_VTI_LOGIN_URL;
 
