@@ -17,6 +17,8 @@ import Badge from "@mui/material/Badge";
 import Skeleton from "@mui/material/Skeleton";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import HowToVoteIcon from "@mui/icons-material/HowToVote";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
@@ -56,11 +58,15 @@ export default function TemasPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState(0);
+  const [onlyPending, setOnlyPending] = useState(false);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const isAdminUser = (session?.user as any)?.isAdmin as boolean | undefined;
   const isDir = roles?.includes("DIRECTOR") || isAdminUser;
   const canCreate = roles?.some((r: string) =>
+    ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
+  );
+  const canVote = roles?.some((r: string) =>
     ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 
@@ -86,14 +92,22 @@ export default function TemasPage() {
   const pendingCount = topics.filter((t) => t.status === "PENDING_APPROVAL").length;
   const resolvedCount = topics.filter((t) => t.status === "APROBADO" || t.status === "RECHAZADO").length;
 
+  const isPendingVote = (topic: TopicItem) =>
+    topic.status === "DISCUSSING" && !topic.inPersonOnly && !topic.myVote;
+  const pendingVoteTopics = topics.filter(isPendingVote);
+
   const filtered = topics.filter((topic) => {
-    if (tab === 0) return topic.status === "DISCUSSING";
+    if (tab === 0) {
+      if (topic.status !== "DISCUSSING") return false;
+      if (onlyPending && !isPendingVote(topic)) return false;
+      return true;
+    }
     if (tab === 1) return topic.status === "PENDING_APPROVAL";
     if (tab === 2) return topic.status === "APROBADO" || topic.status === "RECHAZADO";
     return true;
   });
 
-  const canReorder = isDir && tab === 0;
+  const canReorder = isDir && tab === 0 && !onlyPending;
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -216,13 +230,36 @@ export default function TemasPage() {
 
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={(_, v) => {
+          setTab(v);
+          setOnlyPending(false);
+        }}
         sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
       >
         <Tab label={`En discusión (${discussingCount})`} />
         {(isDir || pendingCount > 0) && <Tab label={`Pendientes (${pendingCount})`} />}
         <Tab label={`Resueltos (${resolvedCount})`} />
       </Tabs>
+
+      {tab === 0 && canVote && pendingVoteTopics.length > 0 && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setOnlyPending((v) => !v)}
+            >
+              {onlyPending ? "Ver todos" : "Ver solo estos"}
+            </Button>
+          }
+        >
+          {pendingVoteTopics.length === 1
+            ? "Tienes 1 voto pendiente"
+            : `Tienes ${pendingVoteTopics.length} votos pendientes`}
+        </Alert>
+      )}
 
       {loading ? (
         Array.from({ length: 3 }).map((_, i) => (

@@ -10,12 +10,22 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import CircularProgress from "@mui/material/CircularProgress";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
+import Box from "@mui/material/Box";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
-  topic: { id: string; title: string; description: string; status: string };
+  topic: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    inPersonOnly: boolean;
+    requiresProvisionalVote: boolean;
+  };
   isAdmin: boolean;
 }
 
@@ -29,12 +39,18 @@ export default function EditTopicDialog({ open, onClose, onSaved, topic, isAdmin
   const [title, setTitle] = useState(topic.title);
   const [description, setDescription] = useState(topic.description);
   const [status, setStatus] = useState(topic.status);
+  const [inPersonOnly, setInPersonOnly] = useState(topic.inPersonOnly);
+  const [requiresProvisionalVote, setRequiresProvisionalVote] = useState(
+    topic.requiresProvisionalVote
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setTitle(topic.title);
     setDescription(topic.description);
     setStatus(topic.status);
+    setInPersonOnly(topic.inPersonOnly);
+    setRequiresProvisionalVote(topic.requiresProvisionalVote);
   }, [topic]);
 
   const handleSave = async () => {
@@ -43,6 +59,9 @@ export default function EditTopicDialog({ open, onClose, onSaved, topic, isAdmin
     if (title !== topic.title) body.title = title;
     if (description !== topic.description) body.description = description;
     if (status !== topic.status) body.status = status;
+    if (inPersonOnly !== topic.inPersonOnly) body.inPersonOnly = inPersonOnly;
+    if (requiresProvisionalVote !== topic.requiresProvisionalVote)
+      body.requiresProvisionalVote = requiresProvisionalVote;
 
     if (Object.keys(body).length === 0) {
       setLoading(false);
@@ -78,8 +97,29 @@ export default function EditTopicDialog({ open, onClose, onSaved, topic, isAdmin
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          helperText="Puedes pegar enlaces (https://...) y se mostrarán como vínculos."
           sx={{ mb: 2 }}
         />
+        <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={inPersonOnly}
+                onChange={(e) => setInPersonOnly(e.target.checked)}
+              />
+            }
+            label="Solo discusión presencial (sin votación online)"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={requiresProvisionalVote}
+                onChange={(e) => setRequiresProvisionalVote(e.target.checked)}
+              />
+            }
+            label="Requiere voto provisorio"
+          />
+        </Box>
         {isAdmin && (
           <TextField
             label={t("topics.status")}

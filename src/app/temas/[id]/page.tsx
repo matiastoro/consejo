@@ -11,6 +11,7 @@ import EditTopicDialog from "./components/EditTopicDialog";
 import CloseTopicDialog from "./components/CloseTopicDialog";
 import TopicNotes from "./components/TopicNotes";
 import ProvisionalVotePanel from "./components/ProvisionalVotePanel";
+import LinkifiedText from "./components/LinkifiedText";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -313,9 +314,7 @@ export default function TopicDetailPage() {
             {t("topics.author")}: {topic.author.name} &bull;{" "}
             {new Date(topic.createdAt).toLocaleDateString()}
           </Typography>
-          <Typography sx={{ whiteSpace: "pre-wrap" }}>
-            {topic.description}
-          </Typography>
+          <LinkifiedText text={topic.description} />
 
           {topic.attachments.length > 0 && (
             <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>

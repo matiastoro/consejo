@@ -97,6 +97,7 @@ export default function NewTopicDialog({ open, onClose, onCreated }: Props) {
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          helperText="Puedes pegar enlaces (https://...) y se mostrarán como vínculos."
           sx={{ mb: 2 }}
         />
 
