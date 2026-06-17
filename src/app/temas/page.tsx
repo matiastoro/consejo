@@ -284,6 +284,11 @@ export default function TemasPage() {
                           mb: 2,
                           opacity: snapshot.isDragging ? 0.85 : 1,
                           boxShadow: snapshot.isDragging ? 8 : undefined,
+                          ...(canVote && isPendingVote(topic) && {
+                            borderLeftWidth: 4,
+                            borderLeftStyle: "solid",
+                            borderLeftColor: "warning.main",
+                          }),
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "stretch" }}>
@@ -318,7 +323,17 @@ export default function TemasPage() {
         </DragDropContext>
       ) : (
         filtered.map((topic) => (
-          <Card key={topic.id} sx={{ mb: 2 }}>
+          <Card
+            key={topic.id}
+            sx={{
+              mb: 2,
+              ...(canVote && isPendingVote(topic) && {
+                borderLeftWidth: 4,
+                borderLeftStyle: "solid",
+                borderLeftColor: "warning.main",
+              }),
+            }}
+          >
             <CardActionArea
               onClick={() => router.push(`/temas/${topic.id}`)}
               sx={{ p: 2.5 }}

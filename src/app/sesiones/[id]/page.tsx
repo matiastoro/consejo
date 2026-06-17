@@ -259,8 +259,9 @@ export default function SessionDetailPage() {
                         {...provided.draggableProps}
                         sx={{
                           mb: 2,
-                          borderLeft: 4,
-                          borderColor: st.discussed ? "success.main" : "grey.300",
+                          borderLeftWidth: 4,
+                          borderLeftStyle: "solid",
+                          borderLeftColor: st.discussed ? "success.main" : "divider",
                           opacity: snapshot.isDragging ? 0.85 : st.discussed ? 0.75 : 1,
                           boxShadow: snapshot.isDragging ? 8 : undefined,
                         }}
@@ -314,8 +315,9 @@ export default function SessionDetailPage() {
             key={st.topic.id}
             sx={{
               mb: 2,
-              borderLeft: 4,
-              borderColor: st.discussed ? "success.main" : "grey.300",
+              borderLeftWidth: 4,
+              borderLeftStyle: "solid",
+              borderLeftColor: st.discussed ? "success.main" : "divider",
               opacity: st.discussed ? 0.75 : 1,
             }}
           >

@@ -122,6 +122,9 @@ export function getTheme(mode: ThemeMode) {
             primary: { main: "#5dade2", light: "#85c1e9", dark: "#2e86c1" },
             secondary: { main: "#bb8fce", light: "#d2b4de", dark: "#7d3c98" },
             background: { default: "#0d1117", paper: "#161b22" },
+            // El divider por defecto de MUI en dark (rgba(255,255,255,0.12))
+            // hace un borde demasiado contrastado en las tarjetas. Se suaviza.
+            divider: "rgba(255,255,255,0.06)",
           }),
     },
     typography: sharedTypography,
