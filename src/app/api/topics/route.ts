@@ -43,6 +43,7 @@ export async function GET() {
       description: topic.description,
       status: topic.status,
       priority: topic.priority,
+      inPersonOnly: topic.inPersonOnly,
       author: topic.author,
       createdAt: topic.createdAt,
       updatedAt: topic.updatedAt,

@@ -22,6 +22,7 @@ import HowToVoteIcon from "@mui/icons-material/HowToVote";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingIcon from "@mui/icons-material/Pending";
+import PersonIcon from "@mui/icons-material/Person";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 
 interface TopicItem {
@@ -30,6 +31,7 @@ interface TopicItem {
   description: string;
   status: string;
   priority: number;
+  inPersonOnly: boolean;
   author: { id: string; name: string; roles: string[] };
   createdAt: string;
   totalVotes: number;
@@ -163,7 +165,16 @@ export default function TemasPage() {
             </Typography>
           </Box>
         </Badge>
-        {topic.myVote ? (
+        {topic.inPersonOnly ? (
+          <Chip
+            icon={<PersonIcon />}
+            label={t("topics.inPersonOnly")}
+            size="small"
+            color="secondary"
+            variant="outlined"
+            sx={{ height: 24 }}
+          />
+        ) : topic.myVote ? (
           <Chip
             icon={<CheckCircleIcon />}
             label={t("topics.voted")}

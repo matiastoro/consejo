@@ -38,6 +38,16 @@ interface UserItem {
   createdAt: string;
 }
 
+interface DeniedLoginItem {
+  id: string;
+  rut: string | null;
+  email: string | null;
+  name: string | null;
+  identification: string | null;
+  reason: string;
+  createdAt: string;
+}
+
 const ALL_ROLES = ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
 
 const roleColor: Record<string, "error" | "secondary" | "primary" | "default" | "info" | "warning"> = {
@@ -54,6 +64,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [deniedLogins, setDeniedLogins] = useState<DeniedLoginItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -79,14 +90,24 @@ export default function AdminPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  const fetchDeniedLogins = useCallback(() => {
+    fetch("/api/admin/denied-logins")
+      .then((r) => r.json())
+      .then((data) => setDeniedLogins(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (authStatus === "unauthenticated") router.replace("/auth/signin");
     if (authStatus === "authenticated" && !isAdmin) router.replace("/dashboard");
   }, [authStatus, isAdmin, router]);
 
   useEffect(() => {
-    if (authStatus === "authenticated" && isAdmin) fetchUsers();
-  }, [authStatus, isAdmin, fetchUsers]);
+    if (authStatus === "authenticated" && isAdmin) {
+      fetchUsers();
+      fetchDeniedLogins();
+    }
+  }, [authStatus, isAdmin, fetchUsers, fetchDeniedLogins]);
 
   const updateUser = async (userId: string, body: any) => {
     setSaving(userId);
@@ -342,6 +363,54 @@ export default function AdminPage() {
           </TableContainer>
         </Card>
       )}
+
+      <Typography variant="h5" sx={{ mt: 5, mb: 1 }}>
+        Intentos de acceso denegados
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Personas que entraron por SSO pero no están en la lista de usuarios.
+        Revisa el RUT y el correo para detectar por qué no coinciden con lo
+        pre-cargado.
+      </Typography>
+
+      <Card>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Correo</TableCell>
+                <TableCell>RUT</TableCell>
+                <TableCell>Identificación VTI</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {deniedLogins.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Typography variant="body2" color="text.secondary">
+                      Sin intentos denegados registrados.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                deniedLogins.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell>
+                      {new Date(d.createdAt).toLocaleString("es-CL")}
+                    </TableCell>
+                    <TableCell>{d.name ?? "—"}</TableCell>
+                    <TableCell>{d.email ?? "—"}</TableCell>
+                    <TableCell>{d.rut ?? "—"}</TableCell>
+                    <TableCell>{d.identification ?? "—"}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
     </DashboardLayout>
   );
 }

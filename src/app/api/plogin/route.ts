@@ -63,6 +63,18 @@ export async function GET(request: NextRequest) {
   });
 
   if (!user) {
+    console.warn(
+      `[plogin] Acceso denegado (usuario inexistente): rut=${rut} email=${email ?? "-"}`
+    );
+    await prisma.deniedLogin.create({
+      data: {
+        rut,
+        email,
+        name: fullName,
+        identification,
+        reason: "no_autorizado",
+      },
+    });
     return NextResponse.redirect(
       new URL("/auth/signin?error=no_autorizado", base)
     );
