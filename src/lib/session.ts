@@ -36,3 +36,15 @@ export function canCreateTopics(roles: string[]): boolean {
     ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO"].includes(r)
   );
 }
+
+// Quién puede ver un tema. Refleja el filtro del listado en /api/topics.
+// (Los periodos de membresía y los vetos por conflicto de interés se
+// integrarán aquí más adelante.)
+export function canViewTopic(
+  user: { id: string; roles: string[]; isAdmin: boolean },
+  topic: { status: string; authorId: string }
+): boolean {
+  if (isDirector(user.roles) || user.isAdmin) return true;
+  if (topic.status !== "PENDING_APPROVAL") return true;
+  return topic.authorId === user.id;
+}

@@ -53,5 +53,6 @@ prisma/migrations/
 *.tsbuildinfo
 next-env.d.ts
 
-# uploads
+# uploads (servidos solo vía /api/attachments/[id], fuera de public)
+/uploads/
 /public/uploads/

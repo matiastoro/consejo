@@ -29,7 +29,7 @@ export default function AttachmentList({ attachments, size = "small", sx }: Prop
           icon={<AttachFileIcon />}
           label={att.fileName}
           component="a"
-          href={att.fileUrl}
+          href={`/api/attachments/${att.id}`}
           target="_blank"
           rel="noopener noreferrer"
           clickable
