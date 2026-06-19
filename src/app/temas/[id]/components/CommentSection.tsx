@@ -11,12 +11,15 @@ import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
 import SendIcon from "@mui/icons-material/Send";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import AttachmentList, { AttachmentItem } from "./AttachmentList";
 
 interface Comment {
   id: string;
   content: string;
   createdAt: string;
   user: { id: string; name: string; roles: string[]; image?: string | null };
+  attachments: AttachmentItem[];
 }
 
 interface Props {
@@ -32,28 +35,54 @@ export default function CommentSection({
 }: Props) {
   const { t } = useI18n();
   const [content, setContent] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSend = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() && files.length === 0) return;
     setLoading(true);
 
     const res = await fetch(`/api/topics/${topicId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: content.trim() }),
+      body: JSON.stringify({
+        content: content.trim(),
+        withAttachment: files.length > 0,
+      }),
     });
 
-    setLoading(false);
     if (res.ok) {
+      const comment = await res.json();
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        await fetch(`/api/comments/${comment.id}/attachments`, {
+          method: "POST",
+          body: formData,
+        });
+      }
       setContent("");
+      setFiles([]);
       onCommentAdded();
     }
+    setLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -132,9 +161,12 @@ export default function CommentSection({
                       {new Date(comment.createdAt).toLocaleString()}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {comment.content}
-                  </Typography>
+                  {comment.content && (
+                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                      {comment.content}
+                    </Typography>
+                  )}
+                  <AttachmentList attachments={comment.attachments} sx={{ mt: 0.5 }} />
                 </Box>
               </Box>
             ))
@@ -142,7 +174,34 @@ export default function CommentSection({
           <div ref={endRef} />
         </Box>
 
+        {files.length > 0 && (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+            {files.map((file, i) => (
+              <Chip
+                key={i}
+                label={file.name}
+                size="small"
+                onDelete={() => removeFile(i)}
+              />
+            ))}
+          </Box>
+        )}
+
         <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            hidden
+            onChange={handleFileSelect}
+          />
+          <IconButton
+            color="default"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+          >
+            <AttachFileIcon />
+          </IconButton>
           <TextField
             fullWidth
             multiline
@@ -156,7 +215,7 @@ export default function CommentSection({
           <IconButton
             color="primary"
             onClick={handleSend}
-            disabled={loading || !content.trim()}
+            disabled={loading || (!content.trim() && files.length === 0)}
           >
             <SendIcon />
           </IconButton>

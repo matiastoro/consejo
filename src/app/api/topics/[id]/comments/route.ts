@@ -11,9 +11,9 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json();
-  const { content } = body;
+  const { content, withAttachment } = body;
 
-  if (!content?.trim()) {
+  if (!content?.trim() && !withAttachment) {
     return NextResponse.json(
       { error: "Content is required" },
       { status: 400 }
@@ -29,10 +29,11 @@ export async function POST(
     data: {
       topicId: id,
       userId: user.id,
-      content: content.trim(),
+      content: content?.trim() ?? "",
     },
     include: {
       user: { select: { id: true, name: true, roles: true } },
+      attachments: true,
     },
   });
 

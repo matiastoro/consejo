@@ -25,6 +25,7 @@ export async function GET(
       comments: {
         include: {
           user: { select: { id: true, name: true, roles: true, image: true } },
+          attachments: true,
         },
         orderBy: { createdAt: "asc" },
       },
@@ -37,6 +38,7 @@ export async function GET(
       notes: {
         include: {
           user: { select: { id: true, name: true, roles: true, image: true } },
+          attachments: true,
         },
         orderBy: { createdAt: "desc" },
       },

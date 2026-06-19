@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, isDirector } from "@/lib/session";
 import { saveUploadedFile } from "@/lib/uploads";
 
 export async function POST(
@@ -12,9 +12,13 @@ export async function POST(
 
   const { id } = await params;
 
-  const topic = await prisma.topic.findUnique({ where: { id } });
-  if (!topic) {
-    return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+  const note = await prisma.topicNote.findUnique({ where: { id } });
+  if (!note) {
+    return NextResponse.json({ error: "Note not found" }, { status: 404 });
+  }
+
+  if (note.userId !== user.id && !isDirector(user.roles) && !user.isAdmin) {
+    return forbidden();
   }
 
   const formData = await request.formData();
@@ -24,11 +28,11 @@ export async function POST(
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const saved = await saveUploadedFile(file, `topics/${id}`);
+  const saved = await saveUploadedFile(file, `notes/${id}`);
 
   const attachment = await prisma.attachment.create({
     data: {
-      topicId: id,
+      noteId: id,
       ...saved,
     },
   });
@@ -47,9 +51,20 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "attachmentId is required" }, { status: 400 });
   }
 
-  const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId } });
+  const attachment = await prisma.attachment.findUnique({
+    where: { id: attachmentId },
+    include: { note: true },
+  });
   if (!attachment) {
     return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
+  }
+
+  if (
+    attachment.note?.userId !== user.id &&
+    !isDirector(user.roles) &&
+    !user.isAdmin
+  ) {
+    return forbidden();
   }
 
   await prisma.attachment.delete({ where: { id: attachmentId } });

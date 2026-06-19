@@ -197,15 +197,22 @@ model TopicHistory {
 
 model Attachment {
   id        String   @id @default(cuid())
-  topicId   String
+  topicId   String?
+  commentId String?
+  noteId    String?
   fileName  String
   fileUrl   String
   fileSize  Int
   mimeType  String
   createdAt DateTime @default(now())
 
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic   Topic?     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  comment Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  note    TopicNote? @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
+  @@index([topicId])
+  @@index([commentId])
+  @@index([noteId])
   @@map("attachments")
 }
 
@@ -232,8 +239,9 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
 
   @@map("comments")
 }
@@ -264,8 +272,9 @@ model TopicNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic       Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
 
   @@map("topic_notes")
 }

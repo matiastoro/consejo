@@ -12,6 +12,7 @@ import CloseTopicDialog from "./components/CloseTopicDialog";
 import TopicNotes from "./components/TopicNotes";
 import ProvisionalVotePanel from "./components/ProvisionalVotePanel";
 import LinkifiedText from "./components/LinkifiedText";
+import AttachmentList from "./components/AttachmentList";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -37,7 +38,6 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
@@ -75,12 +75,14 @@ interface TopicDetail {
     content: string;
     createdAt: string;
     user: { id: string; name: string; roles: string[] };
+    attachments: { id: string; fileName: string; fileUrl: string; fileSize: number; mimeType: string }[];
   }[];
   notes: {
     id: string;
     content: string;
     createdAt: string;
     user: { id: string; name: string; roles: string[]; image?: string | null };
+    attachments: { id: string; fileName: string; fileUrl: string; fileSize: number; mimeType: string }[];
   }[];
   provisionalVotes: {
     id: string;
@@ -316,23 +318,7 @@ export default function TopicDetailPage() {
           </Typography>
           <LinkifiedText text={topic.description} />
 
-          {topic.attachments.length > 0 && (
-            <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {topic.attachments.map((att) => (
-                <Chip
-                  key={att.id}
-                  icon={<AttachFileIcon />}
-                  label={att.fileName}
-                  component="a"
-                  href={att.fileUrl}
-                  target="_blank"
-                  clickable
-                  size="small"
-                  variant="outlined"
-                />
-              ))}
-            </Box>
-          )}
+          <AttachmentList attachments={topic.attachments} sx={{ mt: 2 }} />
         </CardContent>
       </Card>
 
