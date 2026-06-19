@@ -83,7 +83,7 @@ export async function GET(
         <h3>${escapeHtml(topic.title)}</h3>
         <p class="meta">Autor: ${escapeHtml(topic.author.name)} · Estado: ${statusLabel[topic.status] ?? topic.status}
         ${discussed ? " · <strong>Discutido en sesión</strong>" : " · No discutido"}</p>
-        <p>${escapeHtml(topic.description)}</p>
+        <p class="desc">${escapeHtml(topic.description)}</p>
 
         ${topic.notes.length > 0 ? `
         <div class="section">
@@ -111,7 +111,7 @@ export async function GET(
         ${topic.resolution ? `
         <div class="section">
           <h4>Resolución</h4>
-          <p>${escapeHtml(topic.resolution)}</p>
+          <p class="desc">${escapeHtml(topic.resolution)}</p>
         </div>
         ` : ""}
 
@@ -145,7 +145,8 @@ export async function GET(
     .topic.not-discussed { border-left: 4px solid #95a5a6; }
     .meta { color: #666; font-size: 13px; margin: 5px 0 10px; }
     .section { margin-top: 12px; padding-top: 8px; border-top: 1px solid #eee; }
-    .comment, .note { font-size: 13px; margin: 4px 0; line-height: 1.5; }
+    .comment, .note { font-size: 13px; margin: 4px 0; line-height: 1.5; white-space: pre-wrap; }
+    .desc { white-space: pre-wrap; }
     .date { color: #999; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     table td { padding: 4px 8px; border: 1px solid #eee; }
