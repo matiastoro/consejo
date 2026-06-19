@@ -13,6 +13,7 @@ import Chip from "@mui/material/Chip";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import AttachmentList, { AttachmentItem } from "./AttachmentList";
+import { useFileDrop } from "./useFileDrop";
 
 interface Comment {
   id: string;
@@ -54,6 +55,10 @@ export default function CommentSection({
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const { dragging, dropHandlers } = useFileDrop((dropped) => {
+    setFiles((prev) => [...prev, ...dropped]);
+  });
 
   const handleSend = async () => {
     if (!content.trim() && files.length === 0) return;
@@ -101,7 +106,35 @@ export default function CommentSection({
   };
 
   return (
-    <Card>
+    <Card
+      {...dropHandlers}
+      sx={{
+        position: "relative",
+        outline: dragging ? "2px dashed" : "none",
+        outlineColor: "primary.main",
+        outlineOffset: -2,
+        transition: "outline-color 0.15s",
+      }}
+    >
+      {dragging && (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2,
+            bgcolor: "action.hover",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+            Soltar para adjuntar a la discusión
+          </Typography>
+        </Box>
+      )}
       <CardContent>
         <Typography variant="h6" sx={{ mb: 2 }}>
           {t("comments.title")} ({comments.length})

@@ -24,6 +24,7 @@ enum TopicStatus {
   DISCUSSING
   APROBADO
   RECHAZADO
+  CERRADO
 }
 
 enum SessionStatus {
@@ -82,6 +83,7 @@ model User {
   sessionsCreated  CouncilSession[] @relation("SessionCreator")
   membershipPeriods MembershipPeriod[]
   recusals         TopicRecusal[]
+  sessionAttendances SessionAttendee[]
 
   @@map("users")
 }
@@ -248,6 +250,7 @@ model Attachment {
   topic   Topic?     @relation(fields: [topicId], references: [id], onDelete: Cascade)
   comment Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
   note    TopicNote? @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  actaSelections SessionActaAttachment[]
 
   @@index([topicId])
   @@index([commentId])
@@ -345,16 +348,76 @@ model CouncilSession {
   id          String        @id @default(cuid())
   title       String
   date        DateTime
+  location    String        @default("Dirección DCC")
   status      SessionStatus @default(SCHEDULED)
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  createdBy      User           @relation("SessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  topics         SessionTopic[]
-  resolvedTopics Topic[]        @relation("TopicsResolvedInSession")
+  createdBy       User                    @relation("SessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  topics          SessionTopic[]
+  resolvedTopics  Topic[]                 @relation("TopicsResolvedInSession")
+  attendees       SessionAttendee[]
+  actaAttachments SessionActaAttachment[]
+  acta            SessionActa?
 
   @@map("council_sessions")
+}
+
+// Quién asistió a una sesión. Se siembra desde los miembros con periodo
+// activo a la fecha de la sesión; el director marca/desmarca asistencia.
+// La presencia de la fila = asistió. isGuest separa "Asisten" de "Invitados".
+model SessionAttendee {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  isGuest   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  session CouncilSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@map("session_attendees")
+}
+
+// Acta generada y cacheada de una sesión. Una por sesión; "Regenerar" la
+// reemplaza. La generación (sobre todo con LLM) corre en segundo plano: status
+// pasa de PENDING a READY o ERROR y el archivo queda guardado en disco.
+model SessionActa {
+  id          String    @id @default(cuid())
+  sessionId   String    @unique
+  status      String    @default("PENDING") // PENDING | READY | ERROR
+  mode        String    @default("RAW") // RAW | LLM
+  fileUrl     String?
+  fileSize    Int?
+  error       String?
+  generatedAt DateTime?
+  requestedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  session CouncilSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_actas")
+}
+
+// Adjuntos PDF (de temas resueltos en la sesión) que se anexan al acta.
+// Selección persistida y ordenable, elegida por el director/admin.
+model SessionActaAttachment {
+  id           String   @id @default(cuid())
+  sessionId    String
+  attachmentId String
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  session    CouncilSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attachment Attachment     @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, attachmentId])
+  @@index([sessionId])
+  @@map("session_acta_attachments")
 }
 
 model SessionTopic {

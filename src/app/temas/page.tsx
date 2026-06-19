@@ -50,6 +50,7 @@ const statusColor: Record<string, "warning" | "success" | "default" | "error"> =
   DISCUSSING: "success",
   APROBADO: "default",
   RECHAZADO: "error",
+  CERRADO: "default",
 };
 
 export default function TemasPage() {
@@ -92,7 +93,7 @@ export default function TemasPage() {
 
   const discussingCount = topics.filter((t) => t.status === "DISCUSSING").length;
   const pendingCount = topics.filter((t) => t.status === "PENDING_APPROVAL").length;
-  const resolvedCount = topics.filter((t) => t.status === "APROBADO" || t.status === "RECHAZADO").length;
+  const resolvedCount = topics.filter((t) => t.status === "APROBADO" || t.status === "RECHAZADO" || t.status === "CERRADO").length;
 
   const isPendingVote = (topic: TopicItem) =>
     topic.status === "DISCUSSING" && !topic.inPersonOnly && !topic.myVote;
@@ -105,7 +106,7 @@ export default function TemasPage() {
       return true;
     }
     if (tab === 1) return topic.status === "PENDING_APPROVAL";
-    if (tab === 2) return topic.status === "APROBADO" || topic.status === "RECHAZADO";
+    if (tab === 2) return topic.status === "APROBADO" || topic.status === "RECHAZADO" || topic.status === "CERRADO";
     return true;
   });
 
@@ -144,7 +145,7 @@ export default function TemasPage() {
           {topic.title}
         </Typography>
         <Chip
-          label={t(`topics.${topic.status === "PENDING_APPROVAL" ? "pendingApproval" : topic.status === "DISCUSSING" ? "discussing" : topic.status === "APROBADO" ? "aprobado" : "rechazado"}`)}
+          label={t(`topics.${topic.status === "PENDING_APPROVAL" ? "pendingApproval" : topic.status === "DISCUSSING" ? "discussing" : topic.status === "APROBADO" ? "aprobado" : topic.status === "CERRADO" ? "cerrado" : "rechazado"}`)}
           color={statusColor[topic.status] ?? "default"}
           size="small"
         />

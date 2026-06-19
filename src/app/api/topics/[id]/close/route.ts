@@ -15,10 +15,10 @@ export async function POST(
 
   const { id } = await params;
   const body = await request.json();
-  const { status, resolution, sessionId } = body as { status: "APROBADO" | "RECHAZADO"; resolution?: string; sessionId?: string };
+  const { status, resolution, sessionId } = body as { status: "APROBADO" | "RECHAZADO" | "CERRADO"; resolution?: string; sessionId?: string };
 
-  if (status !== "APROBADO" && status !== "RECHAZADO") {
-    return NextResponse.json({ error: "Status must be APROBADO or RECHAZADO" }, { status: 400 });
+  if (status !== "APROBADO" && status !== "RECHAZADO" && status !== "CERRADO") {
+    return NextResponse.json({ error: "Status must be APROBADO, RECHAZADO or CERRADO" }, { status: 400 });
   }
 
   const topic = await prisma.topic.findUnique({ where: { id } });

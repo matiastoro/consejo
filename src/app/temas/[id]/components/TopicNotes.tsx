@@ -16,6 +16,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import AttachmentList, { AttachmentItem } from "./AttachmentList";
+import { useFileDrop } from "./useFileDrop";
 
 interface Note {
   id: string;
@@ -48,6 +49,11 @@ export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const { dragging, dropHandlers } = useFileDrop((dropped) => {
+    setFiles((prev) => [...prev, ...dropped]);
+    setExpanded(true);
+  });
 
   const handleSend = async () => {
     if (!content.trim() && files.length === 0) return;
@@ -87,7 +93,35 @@ export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
   };
 
   return (
-    <Card>
+    <Card
+      {...dropHandlers}
+      sx={{
+        position: "relative",
+        outline: dragging ? "2px dashed" : "none",
+        outlineColor: "primary.main",
+        outlineOffset: -2,
+        transition: "outline-color 0.15s",
+      }}
+    >
+      {dragging && (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2,
+            bgcolor: "action.hover",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="body2" color="primary" sx={{ fontWeight: 600 }}>
+            Soltar para adjuntar a este avance
+          </Typography>
+        </Box>
+      )}
       <CardContent>
         <Box
           sx={{ display: "flex", alignItems: "center", cursor: "pointer", mb: expanded ? 2 : 0 }}

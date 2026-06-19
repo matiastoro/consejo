@@ -16,7 +16,7 @@ export async function GET() {
 
   // Count all discussing topics for the total
   const discussingCount = await prisma.topic.count({
-    where: { status: { in: ["DISCUSSING", "APROBADO", "RECHAZADO"] } },
+    where: { status: { in: ["DISCUSSING", "APROBADO", "RECHAZADO", "CERRADO"] } },
   });
 
   const enriched = sessions.map((s) => ({

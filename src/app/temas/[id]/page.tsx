@@ -108,6 +108,7 @@ const statusLabels: Record<string, string> = {
   DISCUSSING: "En discusión",
   APROBADO: "Aprobado",
   RECHAZADO: "Rechazado",
+  CERRADO: "Cerrado",
 };
 
 export default function TopicDetailPage() {
@@ -313,6 +314,8 @@ export default function TopicDetailPage() {
                 ? "discussing"
                 : topic.status === "APROBADO"
                 ? "aprobado"
+                : topic.status === "CERRADO"
+                ? "cerrado"
                 : "rechazado"
             }`
           )}
@@ -323,6 +326,8 @@ export default function TopicDetailPage() {
               ? "success"
               : topic.status === "APROBADO"
               ? "info"
+              : topic.status === "CERRADO"
+              ? "default"
               : "error"
           }
         />
@@ -370,13 +375,13 @@ export default function TopicDetailPage() {
         </CardContent>
       </Card>
 
-      {(topic.status === "APROBADO" || topic.status === "RECHAZADO") && (
-        <Card sx={{ mb: 3, borderLeft: 4, borderColor: topic.status === "APROBADO" ? "success.main" : "error.main" }}>
+      {(topic.status === "APROBADO" || topic.status === "RECHAZADO" || topic.status === "CERRADO") && (
+        <Card sx={{ mb: 3, borderLeft: 4, borderColor: topic.status === "APROBADO" ? "success.main" : topic.status === "CERRADO" ? "grey.500" : "error.main" }}>
           <CardContent>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: topic.resolution ? 1 : 0 }}>
-              <GavelIcon sx={{ color: topic.status === "APROBADO" ? "success.main" : "error.main" }} />
+              <GavelIcon sx={{ color: topic.status === "APROBADO" ? "success.main" : topic.status === "CERRADO" ? "grey.600" : "error.main" }} />
               <Typography sx={{ fontWeight: 600 }}>
-                Tema {topic.status === "APROBADO" ? "aprobado" : "rechazado"}
+                Tema {topic.status === "APROBADO" ? "aprobado" : topic.status === "CERRADO" ? "cerrado" : "rechazado"}
               </Typography>
               {topic.closedAt && (
                 <Typography variant="caption" color="text.secondary">

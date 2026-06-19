@@ -16,9 +16,22 @@ import IconButton from "@mui/material/IconButton";
 import Checkbox from "@mui/material/Checkbox";
 import Skeleton from "@mui/material/Skeleton";
 import Tooltip from "@mui/material/Tooltip";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import CircularProgress from "@mui/material/CircularProgress";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import DescriptionIcon from "@mui/icons-material/Description";
+import DownloadIcon from "@mui/icons-material/Download";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import GroupIcon from "@mui/icons-material/Group";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import AttendanceDialog from "./components/AttendanceDialog";
+import ActaAttachmentsDialog from "./components/ActaAttachmentsDialog";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import BallotIcon from "@mui/icons-material/Ballot";
@@ -48,7 +61,16 @@ interface SessionDetail {
   date: string;
   status: string;
   createdBy: { id: string; name: string };
+  location?: string;
+  llmAvailable?: boolean;
   topics: TopicInSession[];
+}
+
+interface ActaStatus {
+  status: "NONE" | "PENDING" | "READY" | "ERROR";
+  mode?: "RAW" | "LLM";
+  generatedAt?: string | null;
+  error?: string | null;
 }
 
 export default function SessionDetailPage() {
@@ -58,6 +80,10 @@ export default function SessionDetailPage() {
   const sessionId = params.id as string;
   const [councilSession, setCouncilSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [actaMenuAnchor, setActaMenuAnchor] = useState<null | HTMLElement>(null);
+  const [acta, setActa] = useState<ActaStatus | null>(null);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const isAdminUser = (session?.user as any)?.isAdmin as boolean | undefined;
@@ -99,8 +125,45 @@ export default function SessionDetailPage() {
     fetchSession();
   };
 
-  const handleOpenActa = () => {
+  const fetchActaStatus = useCallback(() => {
+    fetch(`/api/sessions/${sessionId}/acta/status`)
+      .then((r) => r.json())
+      .then((data: ActaStatus) => setActa(data))
+      .catch(() => {});
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") fetchActaStatus();
+  }, [authStatus, fetchActaStatus]);
+
+  // Mientras el acta se genera en el servidor, refresca el estado cada 3s. El
+  // usuario puede navegar y volver: el estado vive en el servidor.
+  useEffect(() => {
+    if (acta?.status !== "PENDING") return;
+    const t = setInterval(fetchActaStatus, 3000);
+    return () => clearInterval(t);
+  }, [acta?.status, fetchActaStatus]);
+
+  // Lanza la generación en segundo plano (no bloquea la UI).
+  const startActaGeneration = async (useLlm: boolean) => {
+    setActaMenuAnchor(null);
+    setActa({ status: "PENDING", mode: useLlm ? "LLM" : "RAW" });
+    await fetch(`/api/sessions/${sessionId}/acta/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ llm: useLlm }),
+    }).catch(() => {});
+    fetchActaStatus();
+  };
+
+  const handleDownloadActa = () => {
     window.open(`/api/sessions/${sessionId}/acta`, "_blank");
+  };
+
+  // Genera directo (sin IA) o abre el menú con las dos variantes si hay IA.
+  const handleActaButton = (e: React.MouseEvent<HTMLElement>) => {
+    if (councilSession?.llmAvailable) setActaMenuAnchor(e.currentTarget);
+    else startActaGeneration(false);
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -204,12 +267,108 @@ export default function SessionDetailPage() {
           )}
           <Button
             variant="outlined"
-            startIcon={<PictureAsPdfIcon />}
-            onClick={handleOpenActa}
+            startIcon={<GroupIcon />}
+            onClick={() => setAttendanceOpen(true)}
           >
-            Generar acta
+            Asistencia
           </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AttachFileIcon />}
+            onClick={() => setAttachmentsOpen(true)}
+          >
+            Anexos del acta
+          </Button>
+          {acta?.status === "READY" ? (
+            <>
+              <Button
+                variant="contained"
+                startIcon={<DownloadIcon />}
+                onClick={handleDownloadActa}
+              >
+                Descargar acta
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<AutorenewIcon />}
+                onClick={handleActaButton}
+              >
+                Regenerar
+              </Button>
+            </>
+          ) : acta?.status === "PENDING" ? (
+            <Button variant="outlined" disabled startIcon={<CircularProgress size={18} />}>
+              Generando acta…
+            </Button>
+          ) : (
+            <Button
+              variant="outlined"
+              startIcon={<PictureAsPdfIcon />}
+              onClick={handleActaButton}
+            >
+              Generar acta
+            </Button>
+          )}
+          <Menu
+            anchorEl={actaMenuAnchor}
+            open={Boolean(actaMenuAnchor)}
+            onClose={() => setActaMenuAnchor(null)}
+          >
+            <MenuItem onClick={() => startActaGeneration(false)}>
+              <ListItemIcon>
+                <DescriptionIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Texto del consejo"
+                secondary="Resoluciones tal cual se registraron"
+              />
+            </MenuItem>
+            <MenuItem onClick={() => startActaGeneration(true)}>
+              <ListItemIcon>
+                <AutoAwesomeIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Con redacción IA"
+                secondary="Pule la prosa con el modelo local (puede tardar)"
+              />
+            </MenuItem>
+          </Menu>
+
+          <Box sx={{ flexBasis: "100%", height: 0 }} />
+          {acta?.status === "READY" && (
+            <Typography variant="caption" color="text.secondary">
+              Acta {acta.mode === "LLM" ? "con redacción IA" : "del consejo"} ·{" "}
+              {acta.generatedAt
+                ? `generada el ${new Date(acta.generatedAt).toLocaleString("es-CL")}`
+                : ""}
+            </Typography>
+          )}
+          {acta?.status === "PENDING" && (
+            <Typography variant="caption" color="text.secondary">
+              Generando en segundo plano. Puedes seguir trabajando; el acta queda lista aquí cuando termine.
+            </Typography>
+          )}
+          {acta?.status === "ERROR" && (
+            <Typography variant="caption" color="error">
+              No se pudo generar el acta{acta.error ? `: ${acta.error}` : ""}. Intenta regenerar.
+            </Typography>
+          )}
         </Box>
+      )}
+
+      {isDir && (
+        <>
+          <AttendanceDialog
+            open={attendanceOpen}
+            onClose={() => setAttendanceOpen(false)}
+            sessionId={sessionId}
+          />
+          <ActaAttachmentsDialog
+            open={attachmentsOpen}
+            onClose={() => setAttachmentsOpen(false)}
+            sessionId={sessionId}
+          />
+        </>
       )}
 
       <Card sx={{ mb: 3 }}>
@@ -359,6 +518,8 @@ function renderTopicContent(st: TopicInSession) {
               ? "Aprobado"
               : topic.status === "RECHAZADO"
               ? "Rechazado"
+              : topic.status === "CERRADO"
+              ? "Cerrado"
               : "En discusión"
           }
           size="small"
@@ -367,6 +528,8 @@ function renderTopicContent(st: TopicInSession) {
               ? "success"
               : topic.status === "RECHAZADO"
               ? "error"
+              : topic.status === "CERRADO"
+              ? "default"
               : "info"
           }
         />

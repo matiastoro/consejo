@@ -28,7 +28,7 @@ export async function GET(
     where: {
       OR: [
         { status: "DISCUSSING" },
-        { status: { in: ["APROBADO", "RECHAZADO"] }, resolvedInSessionId: id },
+        { status: { in: ["APROBADO", "RECHAZADO", "CERRADO"] }, resolvedInSessionId: id },
       ],
     },
     include: {
@@ -80,6 +80,8 @@ export async function GET(
     status: session.status,
     createdBy: session.createdBy,
     createdAt: session.createdAt,
+    location: session.location,
+    llmAvailable: Boolean(process.env.AI_PROVIDER_BASE_URL),
     topics: mergedTopics,
   });
 }

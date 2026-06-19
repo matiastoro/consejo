@@ -13,6 +13,9 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
+
+type CloseStatus = "APROBADO" | "RECHAZADO" | "CERRADO";
 
 interface Props {
   open: boolean;
@@ -23,7 +26,7 @@ interface Props {
 }
 
 export default function CloseTopicDialog({ open, onClose, onClosed, topicId, sessionId }: Props) {
-  const [status, setStatus] = useState<"APROBADO" | "RECHAZADO" | null>(null);
+  const [status, setStatus] = useState<CloseStatus | null>(null);
   const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -71,6 +74,10 @@ export default function CloseTopicDialog({ open, onClose, onClosed, topicId, ses
           <ToggleButton value="RECHAZADO" color="error">
             <ThumbDownIcon sx={{ mr: 1 }} />
             Rechazado
+          </ToggleButton>
+          <ToggleButton value="CERRADO" color="primary">
+            <TaskAltIcon sx={{ mr: 1 }} />
+            Cerrado
           </ToggleButton>
         </ToggleButtonGroup>
 
