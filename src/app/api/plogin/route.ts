@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { encode } from "next-auth/jwt";
-import { fetchPhotoUrl } from "@/lib/ucampus";
+import { fetchPersona } from "@/lib/ucampus";
 
 function parseVtiRut(identification: string): string {
   const stripped = identification.replace(/^0+/, "");
@@ -80,29 +80,35 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Usuario existente: completar o refrescar datos desde VTI sin tocar roles.
+  // Datos desde Ucampus: alias (nombre para mostrar), nombre completo y foto.
+  const persona = rut ? await fetchPersona(rut) : null;
+
+  // Usuario existente: completar o refrescar datos sin tocar roles.
   const updates: Record<string, unknown> = {};
   if (!user.rut && rut) updates.rut = rut;
   if (!user.email && email) updates.email = email;
-  if (fullName && user.name !== fullName) updates.name = fullName;
-  if (fullName && user.fullName !== fullName) updates.fullName = fullName;
+
+  // Nombre completo (legal): preferir el de VTI; si no, el de Ucampus.
+  const legalName = fullName || persona?.fullName || null;
+  if (legalName && user.fullName !== legalName) updates.fullName = legalName;
+
+  // Nombre para mostrar: el alias de Ucampus. Si Ucampus no entrega alias,
+  // no se pisa el nombre existente; solo si el usuario aún no tiene uno se
+  // usa el nombre legal como respaldo.
+  if (persona?.alias) {
+    if (user.name !== persona.alias) updates.name = persona.alias;
+  } else if (!user.name && legalName) {
+    updates.name = legalName;
+  }
+
+  // Foto: completar si falta.
+  if (!user.image && persona?.image) updates.image = persona.image;
 
   if (Object.keys(updates).length > 0) {
     user = await prisma.user.update({
       where: { id: user.id },
       data: updates,
     });
-  }
-
-  // Fetch photo from UCampus if user doesn't have one
-  if (!user.image && rut) {
-    const photoUrl = await fetchPhotoUrl(rut);
-    if (photoUrl) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { image: photoUrl },
-      });
-    }
   }
 
   const sessionJwt = await encode({

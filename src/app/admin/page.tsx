@@ -154,12 +154,16 @@ export default function AdminPage() {
     const name = users.find((u) => u.id === userId)?.name;
     if (res.ok) {
       setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, image: data.image } : u))
+        prev.map((u) =>
+          u.id === userId
+            ? { ...u, image: data.image, name: data.name ?? u.name, fullName: data.fullName ?? u.fullName }
+            : u
+        )
       );
-      setSuccess(`Foto actualizada desde Mufasa: ${name}`);
+      setSuccess(`Datos actualizados desde Ucampus: ${data.name ?? name}`);
       setTimeout(() => setSuccess(null), 3000);
     } else {
-      setError(`${name}: ${data.error ?? "No se pudo traer la foto"}`);
+      setError(`${name}: ${data.error ?? "No se pudo traer los datos"}`);
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -344,7 +348,7 @@ export default function AdminPage() {
                   <TableCell>RUT</TableCell>
                   <TableCell>Roles</TableCell>
                   <TableCell>Admin</TableCell>
-                  <TableCell align="center">Foto</TableCell>
+                  <TableCell align="center">Ucampus</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -409,8 +413,8 @@ export default function AdminPage() {
                       <Tooltip
                         title={
                           user.rut
-                            ? "Traer foto desde Mufasa"
-                            : "Sin RUT: no se puede consultar Mufasa"
+                            ? "Traer datos desde Ucampus (alias y foto)"
+                            : "Sin RUT: no se puede consultar Ucampus"
                         }
                       >
                         <span>
