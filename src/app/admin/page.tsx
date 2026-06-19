@@ -16,9 +16,6 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
 import Switch from "@mui/material/Switch";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import OutlinedInput from "@mui/material/OutlinedInput";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
@@ -31,6 +28,8 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import CircularProgress from "@mui/material/CircularProgress";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
+import EventIcon from "@mui/icons-material/Event";
+import PeriodsDialog from "./PeriodsDialog";
 
 interface UserItem {
   id: string;
@@ -40,6 +39,7 @@ interface UserItem {
   rut: string | null;
   image: string | null;
   roles: string[];
+  currentRoles: string[];
   isAdmin: boolean;
   createdAt: string;
 }
@@ -53,8 +53,6 @@ interface DeniedLoginItem {
   reason: string;
   createdAt: string;
 }
-
-const ALL_ROLES = ["DIRECTOR", "SUBDIRECTOR", "JEFE_DOCENTE", "CONSEJERO", "INVITADO", "PROFESOR"];
 
 const roleColor: Record<string, "error" | "secondary" | "primary" | "default" | "info" | "warning"> = {
   DIRECTOR: "error",
@@ -76,12 +74,12 @@ export default function AdminPage() {
   const [syncing, setSyncing] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [periodsUser, setPeriodsUser] = useState<{ id: string; name: string } | null>(null);
 
   // Formulario de pre-carga de usuarios.
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newRut, setNewRut] = useState("");
-  const [newRoles, setNewRoles] = useState<string[]>(["CONSEJERO"]);
   const [newIsAdmin, setNewIsAdmin] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -176,10 +174,6 @@ export default function AdminPage() {
       setCreateError("Debes indicar al menos un RUT o un correo");
       return;
     }
-    if (newRoles.length === 0) {
-      setCreateError("Debes asignar al menos un rol");
-      return;
-    }
 
     setCreating(true);
     const res = await fetch("/api/admin/users", {
@@ -189,7 +183,7 @@ export default function AdminPage() {
         name: newName,
         email: newEmail,
         rut: newRut,
-        roles: newRoles,
+        roles: ["PROFESOR"],
         isAdmin: newIsAdmin,
       }),
     });
@@ -203,7 +197,6 @@ export default function AdminPage() {
       setNewName("");
       setNewEmail("");
       setNewRut("");
-      setNewRoles(["CONSEJERO"]);
       setNewIsAdmin(false);
       setSuccess(`Usuario pre-cargado: ${created.name}`);
       setTimeout(() => setSuccess(null), 3000);
@@ -239,8 +232,9 @@ export default function AdminPage() {
             Agregar usuario
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Pre-carga a una persona con su rol. Entrará por SSO y se completarán
-            sus datos en el primer acceso. Indica al menos RUT o correo.
+            Pre-carga a una persona. Entrará por SSO y se completarán sus datos en
+            el primer acceso. Indica al menos RUT o correo. Sus cargos (director,
+            consejero, etc.) se asignan después en &ldquo;Membresía&rdquo;.
           </Typography>
 
           {createError && (
@@ -281,34 +275,6 @@ export default function AdminPage() {
                 spacing={2}
                 sx={{ alignItems: { sm: "center" } }}
               >
-                <Select
-                  multiple
-                  size="small"
-                  value={newRoles}
-                  onChange={(e) => setNewRoles(e.target.value as string[])}
-                  input={<OutlinedInput />}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {(selected as string[]).map((role) => (
-                        <Chip
-                          key={role}
-                          label={t(`roles.${role}`)}
-                          size="small"
-                          color={roleColor[role] ?? "default"}
-                          sx={{ height: 24 }}
-                        />
-                      ))}
-                    </Box>
-                  )}
-                  sx={{ minWidth: 220 }}
-                >
-                  {ALL_ROLES.map((role) => (
-                    <MenuItem key={role} value={role}>
-                      {t(`roles.${role}`)}
-                    </MenuItem>
-                  ))}
-                </Select>
-
                 <FormControlLabel
                   control={
                     <Switch
@@ -346,8 +312,9 @@ export default function AdminPage() {
                   <TableCell>Nombre</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>RUT</TableCell>
-                  <TableCell>Roles</TableCell>
+                  <TableCell>Cargo actual</TableCell>
                   <TableCell>Admin</TableCell>
+                  <TableCell align="center">Membresía</TableCell>
                   <TableCell align="center">Ucampus</TableCell>
                 </TableRow>
               </TableHead>
@@ -360,26 +327,26 @@ export default function AdminPage() {
                           src={user.image ?? undefined}
                           sx={{ width: 32, height: 32, fontSize: 14 }}
                         >
-                          {(user.fullName ?? user.name)[0]?.toUpperCase()}
+                          {(user.name || user.fullName || "?")[0]?.toUpperCase()}
                         </Avatar>
-                        {user.fullName ?? user.name}
+                        {user.name || user.fullName}
                       </Box>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.rut ?? "—"}</TableCell>
                     <TableCell>
-                      <Select
-                        multiple
-                        size="small"
-                        value={user.roles}
-                        onChange={(e) =>
-                          updateUser(user.id, { roles: e.target.value as string[] })
+                      {(() => {
+                        const cargos = user.currentRoles.filter((r) => r !== "PROFESOR");
+                        if (cargos.length === 0) {
+                          return (
+                            <Typography variant="body2" color="text.secondary">
+                              —
+                            </Typography>
+                          );
                         }
-                        input={<OutlinedInput />}
-                        disabled={saving === user.id}
-                        renderValue={(selected) => (
+                        return (
                           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                            {(selected as string[]).map((role) => (
+                            {cargos.map((role) => (
                               <Chip
                                 key={role}
                                 label={t(`roles.${role}`)}
@@ -389,15 +356,8 @@ export default function AdminPage() {
                               />
                             ))}
                           </Box>
-                        )}
-                        sx={{ minWidth: 200 }}
-                      >
-                        {ALL_ROLES.map((role) => (
-                          <MenuItem key={role} value={role}>
-                            {t(`roles.${role}`)}
-                          </MenuItem>
-                        ))}
-                      </Select>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -408,6 +368,18 @@ export default function AdminPage() {
                         disabled={saving === user.id}
                         size="small"
                       />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Gestionar periodos de membresía">
+                        <IconButton
+                          size="small"
+                          onClick={() =>
+                            setPeriodsUser({ id: user.id, name: user.name || user.fullName || "" })
+                          }
+                        >
+                          <EventIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip
@@ -487,6 +459,14 @@ export default function AdminPage() {
           </Table>
         </TableContainer>
       </Card>
+
+      {periodsUser && (
+        <PeriodsDialog
+          onClose={() => setPeriodsUser(null)}
+          userId={periodsUser.id}
+          userName={periodsUser.name}
+        />
+      )}
     </DashboardLayout>
   );
 }

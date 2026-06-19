@@ -1,22 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, forbidden, isDirector, canCreateTopics } from "@/lib/session";
+import { Prisma } from "@prisma/client";
 
 export async function GET() {
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
-  const canSeeAll = isDirector(user.roles) || user.isAdmin;
+  const canSeeAll = user.isAdmin;
+  const isDir = isDirector(user.effectiveRoles);
+
+  // Estado: los PENDING_APPROVAL solo los ve su autor o un director vigente.
+  const statusRule: Prisma.TopicWhereInput = isDir
+    ? {}
+    : {
+        OR: [
+          { status: { not: "PENDING_APPROVAL" } },
+          { authorId: user.id, status: "PENDING_APPROVAL" },
+        ],
+      };
+
+  // Visibilidad por periodo: el tema (por createdAt) debe caer dentro de alguno
+  // de los periodos del usuario. Sus propios temas siempre se ven.
+  const visibilityRule: Prisma.TopicWhereInput = {
+    OR: [
+      { authorId: user.id },
+      ...user.membershipPeriods.map((p) => ({
+        createdAt: {
+          gte: p.startDate,
+          ...(p.endDate ? { lte: p.endDate } : {}),
+        },
+      })),
+    ],
+  };
 
   const topics = await prisma.topic.findMany({
-    where: canSeeAll
-      ? {}
-      : {
-          OR: [
-            { status: { not: "PENDING_APPROVAL" } },
-            { authorId: user.id, status: "PENDING_APPROVAL" },
-          ],
-        },
+    where: canSeeAll ? {} : { AND: [statusRule, visibilityRule] },
     include: {
       author: { select: { id: true, name: true, roles: true } },
       votes: { select: { id: true, userId: true, voteType: true } },
@@ -25,12 +44,36 @@ export async function GET() {
         where: { userId: user.id },
         select: { lastReadAt: true, lastCommentId: true },
       },
+      recusals: { where: { userId: user.id }, select: { id: true } },
       _count: { select: { votes: true, comments: true } },
     },
     orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
   });
 
   const enriched = topics.map((topic) => {
+    const recused = topic.recusals.length > 0;
+
+    // Tema vetado: solo título y descripción, sin datos de deliberación.
+    if (recused) {
+      return {
+        id: topic.id,
+        title: topic.title,
+        description: topic.description,
+        status: topic.status,
+        priority: topic.priority,
+        inPersonOnly: topic.inPersonOnly,
+        author: topic.author,
+        createdAt: topic.createdAt,
+        updatedAt: topic.updatedAt,
+        recused: true,
+        totalVotes: 0,
+        totalComments: 0,
+        unreadComments: 0,
+        myVote: null,
+        voteSummary: { A_FAVOR: 0, EN_CONTRA: 0, MAS_DATOS: 0 },
+      };
+    }
+
     const myVote = topic.votes.find((v) => v.userId === user.id);
     const readStatus = topic.readStatuses[0];
     const unreadComments = readStatus
@@ -47,6 +90,7 @@ export async function GET() {
       author: topic.author,
       createdAt: topic.createdAt,
       updatedAt: topic.updatedAt,
+      recused: false,
       totalVotes: topic._count.votes,
       totalComments: topic._count.comments,
       unreadComments,
@@ -65,7 +109,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
-  if (!canCreateTopics(user.roles)) return forbidden();
+  if (!canCreateTopics(user.effectiveRoles)) return forbidden();
 
   const body = await request.json();
   const { title, description, inPersonOnly, requiresProvisionalVote } = body;
@@ -77,7 +121,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const status = (isDirector(user.roles) || user.isAdmin) ? "DISCUSSING" : "PENDING_APPROVAL";
+  const status = (isDirector(user.effectiveRoles) || user.isAdmin) ? "DISCUSSING" : "PENDING_APPROVAL";
 
   const topic = await prisma.topic.create({
     data: {

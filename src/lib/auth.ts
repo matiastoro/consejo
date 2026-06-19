@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
+import { effectiveRoles } from "./roles";
 import * as bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -55,17 +56,20 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.roles = (user as any).roles;
-        token.isAdmin = (user as any).isAdmin;
-      } else if (token.id) {
+      if (user) token.id = user.id;
+      if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { roles: true, isAdmin: true },
+          select: {
+            roles: true,
+            isAdmin: true,
+            membershipPeriods: { select: { role: true, startDate: true, endDate: true } },
+          },
         });
         if (dbUser) {
-          token.roles = dbUser.roles;
+          // Roles efectivos: institucionales + periodos vigentes hoy. Así el
+          // cliente (botones de votar/crear) refleja la membresía actual.
+          token.roles = effectiveRoles(dbUser.roles, dbUser.membershipPeriods);
           token.isAdmin = dbUser.isAdmin;
         }
       }

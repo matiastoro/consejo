@@ -91,7 +91,7 @@ export async function PUT(
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
-  if (!isDirector(user.roles) && !user.isAdmin) {
+  if (!isDirector(user.effectiveRoles) && !user.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -123,7 +123,7 @@ export async function DELETE(
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
-  if (!isDirector(user.roles) && !user.isAdmin) {
+  if (!isDirector(user.effectiveRoles) && !user.isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, isRecused } from "@/lib/session";
 
 export async function POST(
   request: NextRequest,
@@ -24,6 +24,8 @@ export async function POST(
   if (!topic) {
     return NextResponse.json({ error: "Topic not found" }, { status: 404 });
   }
+
+  if (await isRecused(id, user.id)) return forbidden();
 
   const comment = await prisma.comment.create({
     data: {

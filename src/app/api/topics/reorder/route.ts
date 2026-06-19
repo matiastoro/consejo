@@ -6,7 +6,7 @@ export async function PUT(request: NextRequest) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
-  if (!isDirector(user.roles) && !user.isAdmin) {
+  if (!isDirector(user.effectiveRoles) && !user.isAdmin) {
     return NextResponse.json({ error: "Only the director or admin can reorder topics" }, { status: 403 });
   }
 

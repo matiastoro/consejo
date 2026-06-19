@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized } from "@/lib/session";
+import { effectiveRoles } from "@/lib/roles";
 import { UserRole } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
@@ -25,11 +26,19 @@ export async function GET() {
       roles: true,
       isAdmin: true,
       createdAt: true,
+      membershipPeriods: { select: { role: true, startDate: true, endDate: true } },
     },
     orderBy: { name: "asc" },
   });
 
-  return NextResponse.json(users);
+  // currentRoles: cargos vigentes hoy (institucionales + periodos activos),
+  // para mostrar la membresía actual de cada usuario en el panel.
+  const withRoles = users.map(({ membershipPeriods, ...u }) => ({
+    ...u,
+    currentRoles: effectiveRoles(u.roles, membershipPeriods),
+  }));
+
+  return NextResponse.json(withRoles);
 }
 
 // Pre-carga de usuarios: define el rol antes del primer login.

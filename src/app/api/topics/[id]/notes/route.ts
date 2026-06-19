@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, isRecused } from "@/lib/session";
 
 export async function GET(
   _request: NextRequest,
@@ -10,6 +10,8 @@ export async function GET(
   if (!user) return unauthorized();
 
   const { id } = await params;
+
+  if (await isRecused(id, user.id)) return forbidden();
 
   const notes = await prisma.topicNote.findMany({
     where: { topicId: id },
@@ -37,6 +39,8 @@ export async function POST(
   if (!content?.trim() && !withAttachment) {
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
   }
+
+  if (await isRecused(id, user.id)) return forbidden();
 
   const note = await prisma.topicNote.create({
     data: {

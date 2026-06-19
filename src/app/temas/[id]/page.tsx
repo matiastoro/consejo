@@ -13,6 +13,7 @@ import TopicNotes from "./components/TopicNotes";
 import ProvisionalVotePanel from "./components/ProvisionalVotePanel";
 import LinkifiedText from "./components/LinkifiedText";
 import AttachmentList from "./components/AttachmentList";
+import RecusalDialog from "./components/RecusalDialog";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -60,6 +61,7 @@ interface TopicDetail {
   priority: number;
   inPersonOnly: boolean;
   requiresProvisionalVote: boolean;
+  recused?: boolean;
   author: { id: string; name: string; roles: string[] };
   createdAt: string;
   resolution: string | null;
@@ -124,6 +126,7 @@ export default function TopicDetailPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [recusalOpen, setRecusalOpen] = useState(false);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const isAdminUser = (session?.user as any)?.isAdmin as boolean | undefined;
@@ -192,6 +195,41 @@ export default function TopicDetailPage() {
     );
   }
 
+  // Veto por conflicto de interés: solo título y descripción.
+  if (topic.recused) {
+    return (
+      <DashboardLayout>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+          <IconButton onClick={() => router.push(backUrl)}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h5" sx={{ flex: 1 }}>
+            {topic.title}
+          </Typography>
+        </Box>
+        <Card sx={{ mb: 3, borderLeft: 4, borderColor: "warning.main" }}>
+          <CardContent>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+              <GavelIcon sx={{ color: "warning.main" }} />
+              <Typography sx={{ fontWeight: 600 }}>
+                Inhabilitado por conflicto de interés
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              No puedes ver la discusión ni la votación de este tema. Solo tienes
+              acceso a su título y descripción.
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <LinkifiedText text={topic.description} />
+          </CardContent>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
   const voteSummary = {
     A_FAVOR: topic.votes.filter((v) => v.voteType === "A_FAVOR").length,
     EN_CONTRA: topic.votes.filter((v) => v.voteType === "EN_CONTRA").length,
@@ -244,6 +282,16 @@ export default function TopicDetailPage() {
             onClick={() => setResetConfirmOpen(true)}
           >
             Reiniciar
+          </Button>
+        )}
+        {isDir && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<GavelIcon />}
+            onClick={() => setRecusalOpen(true)}
+          >
+            Conflicto de interés
           </Button>
         )}
         {canEdit && (
@@ -480,6 +528,18 @@ export default function TopicDetailPage() {
         topicId={topicId}
         sessionId={fromSessionId}
       />
+
+      {recusalOpen && (
+        <RecusalDialog
+          open
+          onClose={() => setRecusalOpen(false)}
+          topicId={topicId}
+          onSaved={() => {
+            setRecusalOpen(false);
+            fetchTopic();
+          }}
+        />
+      )}
 
       <Dialog open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)}>
         <DialogTitle>Reiniciar votación y discusión</DialogTitle>

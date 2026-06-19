@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized, isDirector } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, isDirector, canViewTopic, isRecused } from "@/lib/session";
 
 export async function GET(
   _request: NextRequest,
@@ -54,6 +54,34 @@ export async function GET(
     return NextResponse.json({ error: "Topic not found" }, { status: 404 });
   }
 
+  if (!canViewTopic(user, topic)) return forbidden();
+
+  // Veto por conflicto de interés: solo título y descripción, sin deliberación.
+  if (await isRecused(topic.id, user.id)) {
+    return NextResponse.json({
+      id: topic.id,
+      title: topic.title,
+      description: topic.description,
+      status: topic.status,
+      priority: topic.priority,
+      inPersonOnly: topic.inPersonOnly,
+      requiresProvisionalVote: topic.requiresProvisionalVote,
+      author: topic.author,
+      createdAt: topic.createdAt,
+      resolution: null,
+      closedAt: null,
+      recused: true,
+      attachments: [],
+      votes: [],
+      comments: [],
+      notes: [],
+      provisionalVotes: [],
+      history: [],
+      myVote: null,
+      myProvisionalVote: null,
+    });
+  }
+
   await prisma.topicReadStatus.upsert({
     where: { topicId_userId: { topicId: id, userId: user.id } },
     update: { lastReadAt: new Date() },
@@ -65,13 +93,14 @@ export async function GET(
 
   return NextResponse.json({
     ...topic,
+    recused: false,
     myVote: myVote?.voteType ?? null,
     myProvisionalVote: myProvisionalVote?.voteType ?? null,
   });
 }
 
-function canEdit(user: { id: string; roles: string[]; isAdmin: boolean }, topic: { authorId: string }) {
-  return topic.authorId === user.id || isDirector(user.roles) || user.isAdmin;
+function canEdit(user: { id: string; effectiveRoles: string[]; isAdmin: boolean }, topic: { authorId: string }) {
+  return topic.authorId === user.id || isDirector(user.effectiveRoles) || user.isAdmin;
 }
 
 export async function PUT(

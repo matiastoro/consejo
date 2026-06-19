@@ -9,7 +9,7 @@ export async function POST(
   const user = await getAuthUser();
   if (!user) return unauthorized();
 
-  if (!isDirector(user.roles) && !user.isAdmin) {
+  if (!isDirector(user.effectiveRoles) && !user.isAdmin) {
     return NextResponse.json({ error: "Only the director or admin can approve topics" }, { status: 403 });
   }
 

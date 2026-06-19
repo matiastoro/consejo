@@ -17,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: "Comment not found" }, { status: 404 });
   }
 
-  if (comment.userId !== user.id && !isDirector(user.roles) && !user.isAdmin) {
+  if (comment.userId !== user.id && !isDirector(user.effectiveRoles) && !user.isAdmin) {
     return forbidden();
   }
 
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
 
   if (
     attachment.comment?.userId !== user.id &&
-    !isDirector(user.roles) &&
+    !isDirector(user.effectiveRoles) &&
     !user.isAdmin
   ) {
     return forbidden();

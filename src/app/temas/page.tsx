@@ -26,11 +26,13 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PendingIcon from "@mui/icons-material/Pending";
 import PersonIcon from "@mui/icons-material/Person";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import GavelIcon from "@mui/icons-material/Gavel";
 
 interface TopicItem {
   id: string;
   title: string;
   description: string;
+  recused?: boolean;
   status: string;
   priority: number;
   inPersonOnly: boolean;
@@ -165,6 +167,17 @@ export default function TemasPage() {
         <Typography variant="caption" color="text.secondary">
           {topic.author.name}
         </Typography>
+        {topic.recused ? (
+          <Chip
+            icon={<GavelIcon />}
+            label="Conflicto de interés"
+            size="small"
+            color="warning"
+            variant="outlined"
+            sx={{ height: 24 }}
+          />
+        ) : (
+          <>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <HowToVoteIcon sx={{ fontSize: 16, color: "text.secondary" }} />
           <Typography variant="caption" color="text.secondary">
@@ -208,6 +221,8 @@ export default function TemasPage() {
               sx={{ height: 24 }}
             />
           )
+        )}
+          </>
         )}
       </Box>
     </Box>

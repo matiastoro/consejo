@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized, forbidden, canViewTopic } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, canViewTopic, isRecused } from "@/lib/session";
 import { resolveAttachmentPaths } from "@/lib/uploads";
 
 export async function GET(
@@ -13,7 +13,9 @@ export async function GET(
 
   const { id } = await params;
 
-  const topicSelect = { select: { status: true, authorId: true } };
+  const topicSelect = {
+    select: { id: true, status: true, authorId: true, createdAt: true },
+  };
   const attachment = await prisma.attachment.findUnique({
     where: { id },
     include: {
@@ -35,6 +37,8 @@ export async function GET(
   }
 
   if (!canViewTopic(user, topic)) return forbidden();
+  // El miembro vetado solo ve título y descripción: nada de adjuntos.
+  if (await isRecused(topic.id, user.id)) return forbidden();
 
   const candidates = resolveAttachmentPaths(attachment.fileUrl);
   let data: Buffer | null = null;

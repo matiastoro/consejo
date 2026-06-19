@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser, unauthorized, forbidden, canVote } from "@/lib/session";
+import { getAuthUser, unauthorized, forbidden, canVote, isRecused } from "@/lib/session";
 
 export async function POST(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   const user = await getAuthUser();
   if (!user) return unauthorized();
-  if (!canVote(user.roles)) return forbidden();
+  if (!canVote(user.effectiveRoles)) return forbidden();
 
   const { id } = await params;
   const body = await request.json();
@@ -22,6 +22,8 @@ export async function POST(
   if (!topic) {
     return NextResponse.json({ error: "Topic not found" }, { status: 404 });
   }
+
+  if (await isRecused(id, user.id)) return forbidden();
 
   if (!topic.requiresProvisionalVote) {
     return NextResponse.json(

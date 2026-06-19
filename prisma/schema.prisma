@@ -80,8 +80,46 @@ model User {
   provisionalVotes ProvisionalVote[]
   notifications    Notification[]
   sessionsCreated  CouncilSession[] @relation("SessionCreator")
+  membershipPeriods MembershipPeriod[]
+  recusals         TopicRecusal[]
 
   @@map("users")
+}
+
+// ============================================
+// MEMBERSHIP PERIODS (CONSEJERO / INVITADO)
+// ============================================
+
+model MembershipPeriod {
+  id        String    @id @default(cuid())
+  userId    String
+  role      UserRole  // CONSEJERO | INVITADO
+  startDate DateTime
+  endDate   DateTime? // null = vigente/indefinido
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("membership_periods")
+}
+
+// ============================================
+// TOPIC RECUSALS (conflicto de interés)
+// ============================================
+
+model TopicRecusal {
+  id        String   @id @default(cuid())
+  topicId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, userId])
+  @@index([topicId])
+  @@map("topic_recusals")
 }
 
 model DeniedLogin {
@@ -176,6 +214,7 @@ model Topic {
   notes            TopicNote[]
   provisionalVotes ProvisionalVote[]
   sessionTopics    SessionTopic[]
+  recusals         TopicRecusal[]
 
   @@map("topics")
 }

@@ -17,7 +17,7 @@ export async function POST(
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
   }
 
-  if (note.userId !== user.id && !isDirector(user.roles) && !user.isAdmin) {
+  if (note.userId !== user.id && !isDirector(user.effectiveRoles) && !user.isAdmin) {
     return forbidden();
   }
 
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
 
   if (
     attachment.note?.userId !== user.id &&
-    !isDirector(user.roles) &&
+    !isDirector(user.effectiveRoles) &&
     !user.isAdmin
   ) {
     return forbidden();
