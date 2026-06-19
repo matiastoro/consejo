@@ -92,6 +92,12 @@ export async function GET(
         </div>
         ` : ""}
 
+        ${topic.inPersonOnly ? `
+        <div class="section">
+          <h4>Votación</h4>
+          <p class="note">Tema discutido presencialmente (sin votación en línea).</p>
+        </div>
+        ` : `
         <div class="section">
           <h4>Votación</h4>
           <table>
@@ -100,6 +106,7 @@ export async function GET(
             <tr><td>Más datos (${masDatos.length})</td><td>${masDatos.map((v) => escapeHtml(v.user.name)).join(", ") || "-"}</td></tr>
           </table>
         </div>
+        `}
 
         ${topic.resolution ? `
         <div class="section">
