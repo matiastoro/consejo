@@ -21,6 +21,7 @@ export async function GET() {
       fullName: true,
       email: true,
       rut: true,
+      image: true,
       roles: true,
       isAdmin: true,
       createdAt: true,

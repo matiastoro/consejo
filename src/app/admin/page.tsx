@@ -26,6 +26,11 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import CardContent from "@mui/material/CardContent";
+import Avatar from "@mui/material/Avatar";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
+import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 
 interface UserItem {
   id: string;
@@ -33,6 +38,7 @@ interface UserItem {
   fullName: string | null;
   email: string;
   rut: string | null;
+  image: string | null;
   roles: string[];
   isAdmin: boolean;
   createdAt: string;
@@ -67,7 +73,9 @@ export default function AdminPage() {
   const [deniedLogins, setDeniedLogins] = useState<DeniedLoginItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Formulario de pre-carga de usuarios.
   const [newName, setNewName] = useState("");
@@ -132,6 +140,30 @@ export default function AdminPage() {
     }
   };
 
+  const syncPhoto = async (userId: string) => {
+    setSyncing(userId);
+    setSuccess(null);
+    setError(null);
+
+    const res = await fetch(`/api/admin/users/${userId}/sync-photo`, {
+      method: "POST",
+    });
+    const data = await res.json().catch(() => ({}));
+    setSyncing(null);
+
+    const name = users.find((u) => u.id === userId)?.name;
+    if (res.ok) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, image: data.image } : u))
+      );
+      setSuccess(`Foto actualizada desde Mufasa: ${name}`);
+      setTimeout(() => setSuccess(null), 3000);
+    } else {
+      setError(`${name}: ${data.error ?? "No se pudo traer la foto"}`);
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
@@ -188,6 +220,12 @@ export default function AdminPage() {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {success}
+        </Alert>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
         </Alert>
       )}
 
@@ -306,12 +344,23 @@ export default function AdminPage() {
                   <TableCell>RUT</TableCell>
                   <TableCell>Roles</TableCell>
                   <TableCell>Admin</TableCell>
+                  <TableCell align="center">Foto</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.fullName ?? user.name}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Avatar
+                          src={user.image ?? undefined}
+                          sx={{ width: 32, height: 32, fontSize: 14 }}
+                        >
+                          {(user.fullName ?? user.name)[0]?.toUpperCase()}
+                        </Avatar>
+                        {user.fullName ?? user.name}
+                      </Box>
+                    </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.rut ?? "—"}</TableCell>
                     <TableCell>
@@ -355,6 +404,29 @@ export default function AdminPage() {
                         disabled={saving === user.id}
                         size="small"
                       />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip
+                        title={
+                          user.rut
+                            ? "Traer foto desde Mufasa"
+                            : "Sin RUT: no se puede consultar Mufasa"
+                        }
+                      >
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => syncPhoto(user.id)}
+                            disabled={!user.rut || syncing === user.id}
+                          >
+                            {syncing === user.id ? (
+                              <CircularProgress size={18} />
+                            ) : (
+                              <AddAPhotoIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
