@@ -29,6 +29,7 @@ import Tooltip from "@mui/material/Tooltip";
 import CircularProgress from "@mui/material/CircularProgress";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import EventIcon from "@mui/icons-material/Event";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import PeriodsDialog from "./PeriodsDialog";
 
 interface UserItem {
@@ -64,7 +65,7 @@ const roleColor: Record<string, "error" | "secondary" | "primary" | "default" | 
 };
 
 export default function AdminPage() {
-  const { data: session, status: authStatus } = useSession();
+  const { data: session, status: authStatus, update } = useSession();
   const router = useRouter();
   const { t } = useI18n();
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -206,6 +207,13 @@ export default function AdminPage() {
     }
   };
 
+  const sessionUserId = (session?.user as any)?.id as string | undefined;
+
+  const impersonate = async (userId: string) => {
+    await update({ impersonate: userId });
+    router.push("/temas");
+  };
+
   if (authStatus === "loading" || !isAdmin) return null;
 
   return (
@@ -316,6 +324,7 @@ export default function AdminPage() {
                   <TableCell>Admin</TableCell>
                   <TableCell align="center">Membresía</TableCell>
                   <TableCell align="center">Ucampus</TableCell>
+                  <TableCell align="center">Ver como</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -400,6 +409,25 @@ export default function AdminPage() {
                             ) : (
                               <AddAPhotoIcon fontSize="small" />
                             )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip
+                        title={
+                          user.id === sessionUserId
+                            ? "Eres tú"
+                            : "Ver la app como este usuario"
+                        }
+                      >
+                        <span>
+                          <IconButton
+                            size="small"
+                            onClick={() => impersonate(user.id)}
+                            disabled={user.id === sessionUserId}
+                          >
+                            <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>

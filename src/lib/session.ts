@@ -18,10 +18,14 @@ export type { PeriodLike } from "./roles";
 
 export async function getAuthUser() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
+  // Identidad efectiva: el id del token (que ya apunta al usuario suplantado si
+  // un admin está usando "Ver como"). Email como respaldo.
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const email = session?.user?.email;
+  if (!userId && !email) return null;
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: userId ? { id: userId } : { email: email! },
     include: { membershipPeriods: true },
   });
   if (!user) return null;

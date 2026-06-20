@@ -23,6 +23,8 @@ import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ForumIcon from "@mui/icons-material/Forum";
@@ -53,7 +55,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const { t, toggleLocale, locale } = useI18n();
@@ -66,6 +68,13 @@ export default function DashboardLayout({
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const primaryRole = roles?.[0];
   const isAdmin = (session?.user as any)?.isAdmin as boolean | undefined;
+  const impersonating = (session?.user as any)?.impersonating as boolean | undefined;
+  const realName = (session?.user as any)?.realName as string | undefined;
+
+  const stopImpersonating = async () => {
+    await update({ impersonate: null });
+    router.refresh();
+  };
 
   const fetchNotifications = useCallback(() => {
     fetch("/api/notifications")
@@ -349,6 +358,20 @@ export default function DashboardLayout({
           p: { xs: 2, sm: 3 },
         }}
       >
+        {impersonating && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={stopImpersonating}>
+                Dejar de ver como
+              </Button>
+            }
+          >
+            Estás viendo la app como <strong>{session?.user?.name}</strong>
+            {realName ? ` (suplantando desde ${realName})` : ""}.
+          </Alert>
+        )}
         {children}
       </Box>
     </Box>
