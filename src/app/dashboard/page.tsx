@@ -41,14 +41,22 @@ export default function DashboardPage() {
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/topics")
-        .then((r) => r.json())
+        .then(async (r) => {
+          // Sesión inválida (p. ej. user inexistente tras cambiar la BD): al login.
+          if (r.status === 401) {
+            router.replace("/auth/signin");
+            return [];
+          }
+          const data = await r.json();
+          return Array.isArray(data) ? data : [];
+        })
         .then((data) => {
           setTopics(data);
           setLoading(false);
         })
         .catch(() => setLoading(false));
     }
-  }, [status]);
+  }, [status, router]);
 
   const pendingApproval = topics.filter((t) => t.status === "PENDING_APPROVAL");
   const activeDiscussions = topics.filter(

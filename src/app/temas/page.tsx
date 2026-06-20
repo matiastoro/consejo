@@ -60,7 +60,9 @@ export default function TemasPage() {
   const [topics, setTopics] = useState<TopicItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [tab, setTab] = useState(0);
+  // Clave estable (no índice): la pestaña "Pendientes" se oculta para algunos
+  // usuarios, así que el índice numérico no es confiable para el filtro.
+  const [tab, setTab] = useState<"discussing" | "pending" | "resolved">("discussing");
   const [onlyPending, setOnlyPending] = useState(false);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
@@ -75,13 +77,20 @@ export default function TemasPage() {
 
   const fetchTopics = useCallback(() => {
     fetch("/api/topics")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (r.status === 401) {
+          router.replace("/auth/signin");
+          return [];
+        }
+        const data = await r.json();
+        return Array.isArray(data) ? data : [];
+      })
       .then((data) => {
         setTopics(data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") router.replace("/auth/signin");
@@ -100,17 +109,16 @@ export default function TemasPage() {
   const pendingVoteTopics = topics.filter(isPendingVote);
 
   const filtered = topics.filter((topic) => {
-    if (tab === 0) {
+    if (tab === "discussing") {
       if (topic.status !== "DISCUSSING") return false;
       if (onlyPending && !isPendingVote(topic)) return false;
       return true;
     }
-    if (tab === 1) return topic.status === "PENDING_APPROVAL";
-    if (tab === 2) return topic.status === "APROBADO" || topic.status === "RECHAZADO" || topic.status === "CERRADO";
-    return true;
+    if (tab === "pending") return topic.status === "PENDING_APPROVAL";
+    return topic.status === "APROBADO" || topic.status === "RECHAZADO" || topic.status === "CERRADO";
   });
 
-  const canReorder = isDir && tab === 0 && !onlyPending;
+  const canReorder = isDir && tab === "discussing" && !onlyPending;
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -252,12 +260,14 @@ export default function TemasPage() {
         }}
         sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}
       >
-        <Tab label={`En discusión (${discussingCount})`} />
-        {(isDir || pendingCount > 0) && <Tab label={`Pendientes (${pendingCount})`} />}
-        <Tab label={`Resueltos (${resolvedCount})`} />
+        <Tab value="discussing" label={`En discusión (${discussingCount})`} />
+        {(isDir || pendingCount > 0) && (
+          <Tab value="pending" label={`Pendientes (${pendingCount})`} />
+        )}
+        <Tab value="resolved" label={`Resueltos (${resolvedCount})`} />
       </Tabs>
 
-      {tab === 0 && canVote && pendingVoteTopics.length > 0 && (
+      {tab === "discussing" && canVote && pendingVoteTopics.length > 0 && (
         <Alert
           severity="info"
           sx={{ mb: 2 }}
