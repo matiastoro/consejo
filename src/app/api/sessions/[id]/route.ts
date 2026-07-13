@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, isDirector } from "@/lib/session";
+import { sessionTopicCutoff } from "@/lib/session-topics";
 
 export async function GET(
   _request: NextRequest,
@@ -23,11 +24,15 @@ export async function GET(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Get pending topics (DISCUSSING) + topics resolved in THIS session
+  // Get pending topics (DISCUSSING) created on or before the session's day +
+  // topics resolved in THIS session. The date cutoff keeps a topic from showing
+  // retroactively in sessions that occurred before it was created, while still
+  // letting it roll forward into the current and future sessions.
+  const cutoff = sessionTopicCutoff(session.date);
   const allTopics = await prisma.topic.findMany({
     where: {
       OR: [
-        { status: "DISCUSSING" },
+        { status: "DISCUSSING", createdAt: { lt: cutoff } },
         { status: { in: ["APROBADO", "RECHAZADO", "CERRADO"] }, resolvedInSessionId: id },
       ],
     },

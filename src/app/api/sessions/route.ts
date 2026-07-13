@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, isDirector } from "@/lib/session";
+import { sessionTopicCutoff } from "@/lib/session-topics";
 
 export async function GET() {
   const user = await getAuthUser();
@@ -14,21 +15,33 @@ export async function GET() {
     orderBy: { date: "desc" },
   });
 
-  // Count all discussing topics for the total
-  const discussingCount = await prisma.topic.count({
+  // Fetch the topics that can belong to a session's agenda, then count them
+  // per session using the same membership rule as the detail view: DISCUSSING
+  // topics created on or before the session's day, plus topics resolved in that
+  // session.
+  const agendaTopics = await prisma.topic.findMany({
     where: { status: { in: ["DISCUSSING", "APROBADO", "RECHAZADO", "CERRADO"] } },
+    select: { status: true, createdAt: true, resolvedInSessionId: true },
   });
 
-  const enriched = sessions.map((s) => ({
-    id: s.id,
-    title: s.title,
-    date: s.date,
-    status: s.status,
-    createdBy: s.createdBy,
-    createdAt: s.createdAt,
-    totalTopics: discussingCount,
-    discussedCount: s.topics.filter((t) => t.discussed).length,
-  }));
+  const enriched = sessions.map((s) => {
+    const cutoff = sessionTopicCutoff(s.date);
+    const totalTopics = agendaTopics.filter(
+      (t) =>
+        (t.status === "DISCUSSING" && t.createdAt < cutoff) ||
+        (t.status !== "DISCUSSING" && t.resolvedInSessionId === s.id)
+    ).length;
+    return {
+      id: s.id,
+      title: s.title,
+      date: s.date,
+      status: s.status,
+      createdBy: s.createdBy,
+      createdAt: s.createdAt,
+      totalTopics,
+      discussedCount: s.topics.filter((t) => t.discussed).length,
+    };
+  });
 
   return NextResponse.json(enriched);
 }
