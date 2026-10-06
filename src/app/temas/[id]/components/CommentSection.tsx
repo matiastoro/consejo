@@ -190,16 +190,18 @@ export default function CommentSection({
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {comment.user.name}
                     </Typography>
-                    <Chip
-                      label={t(`roles.${comment.user.roles[0]}`)}
-                      size="small"
-                      sx={{
-                        height: 18,
-                        fontSize: 10,
-                        bgcolor: roleColor(comment.user.roles),
-                        color: "white",
-                      }}
-                    />
+                    {comment.user.roles[0] && (
+                      <Chip
+                        label={t(`roles.${comment.user.roles[0]}`)}
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: 10,
+                          bgcolor: roleColor(comment.user.roles),
+                          color: "white",
+                        }}
+                      />
+                    )}
                     <Typography variant="caption" color="text.secondary">
                       {new Date(comment.createdAt).toLocaleString()}
                     </Typography>
@@ -249,7 +251,7 @@ export default function CommentSection({
             inputRef={textInputRef}
             fullWidth
             multiline
-            maxRows={4}
+            maxRows={15}
             placeholder={t("comments.placeholder")}
             value={content}
             onChange={(e) => setContent(e.target.value)}

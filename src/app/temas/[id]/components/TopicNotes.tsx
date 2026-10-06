@@ -211,7 +211,7 @@ export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
             <TextField
               fullWidth
               multiline
-              maxRows={4}
+              maxRows={15}
               placeholder="Agregar un avance o apunte..."
               value={content}
               onChange={(e) => setContent(e.target.value)}

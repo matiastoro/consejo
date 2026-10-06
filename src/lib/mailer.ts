@@ -30,13 +30,22 @@ export interface MailMessage {
 // fallos se registran y no se propagan.
 export async function sendMails(messages: MailMessage[]): Promise<void> {
   const t = getTransporter();
-  if (!t || messages.length === 0) return;
+  if (messages.length === 0) return;
+  if (!t) {
+    console.warn("SMTP no configurado (SMTP_HOST/SMTP_USER): no se envían correos");
+    return;
+  }
   const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
   const results = await Promise.allSettled(
     messages.map((m) => t.sendMail({ from, ...m }))
   );
   results.forEach((r, i) => {
-    if (r.status === "rejected") {
+    if (r.status === "fulfilled") {
+      console.log(
+        `Correo a ${messages[i].to}: aceptados=${(r.value.accepted ?? []).join(",")} ` +
+          `rechazados=${(r.value.rejected ?? []).join(",")} respuesta="${r.value.response}"`
+      );
+    } else {
       console.error(`Error enviando correo a ${messages[i].to}:`, r.reason);
     }
   });
