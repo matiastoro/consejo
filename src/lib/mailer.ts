@@ -1,19 +1,22 @@
 import nodemailer, { Transporter } from "nodemailer";
 
-// Cliente SMTP (STARTTLS en el 587). Si falta configuración, el envío se omite
-// en silencio para no romper entornos de desarrollo sin SMTP.
+// Cliente SMTP. En producción apunta al Postfix local (localhost:25, sin
+// autenticación), que encola, reintenta y reenvía al SMTP del DCC. Con
+// SMTP_USER se autentica directo contra el servidor (exige STARTTLS), útil en
+// desarrollo. Sin SMTP_HOST el envío se omite.
 let transporter: Transporter | null = null;
 
 function getTransporter(): Transporter | null {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) return null;
+  if (!process.env.SMTP_HOST) return null;
   if (!transporter) {
+    const user = process.env.SMTP_USER;
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT ?? 587),
+      port: Number(process.env.SMTP_PORT ?? 25),
       secure: false,
-      requireTLS: true,
-      pool: true,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      ...(user
+        ? { requireTLS: true, auth: { user, pass: process.env.SMTP_PASS } }
+        : { ignoreTLS: true }),
     });
   }
   return transporter;
@@ -27,28 +30,26 @@ export interface MailMessage {
 }
 
 // Envía cada correo por separado (sin exponer destinatarios entre sí). Los
-// fallos se registran y no se propagan.
+// fallos se registran y no se propagan; los reintentos son tarea del relé.
 export async function sendMails(messages: MailMessage[]): Promise<void> {
-  const t = getTransporter();
   if (messages.length === 0) return;
+  const t = getTransporter();
   if (!t) {
-    console.warn("SMTP no configurado (SMTP_HOST/SMTP_USER): no se envían correos");
+    console.warn("SMTP no configurado (SMTP_HOST): no se envían correos");
     return;
   }
   const from = process.env.SMTP_FROM ?? process.env.SMTP_USER;
-  const results = await Promise.allSettled(
-    messages.map((m) => t.sendMail({ from, ...m }))
-  );
-  results.forEach((r, i) => {
-    if (r.status === "fulfilled") {
+  for (const m of messages) {
+    try {
+      const info = await t.sendMail({ from, ...m });
       console.log(
-        `Correo a ${messages[i].to}: aceptados=${(r.value.accepted ?? []).join(",")} ` +
-          `rechazados=${(r.value.rejected ?? []).join(",")} respuesta="${r.value.response}"`
+        `Correo a ${m.to}: aceptados=${(info.accepted ?? []).join(",")} ` +
+          `rechazados=${(info.rejected ?? []).join(",")} respuesta="${info.response}"`
       );
-    } else {
-      console.error(`Error enviando correo a ${messages[i].to}:`, r.reason);
+    } catch (e) {
+      console.error(`Error enviando correo a ${m.to}:`, e);
     }
-  });
+  }
 }
 
 export function escapeHtml(s: string): string {

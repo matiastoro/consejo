@@ -75,6 +75,9 @@ async function deliver(
     );
   });
 
+  console.log(
+    `Aviso "${mail.subject}": ${recipients.length} destinatario(s) de ${users.length} con correo`
+  );
   await sendMails(recipients.map((u) => ({ to: u.email!, ...mail })));
 }
 
