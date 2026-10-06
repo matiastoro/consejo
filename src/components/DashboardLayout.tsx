@@ -25,6 +25,8 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ForumIcon from "@mui/icons-material/Forum";
@@ -64,6 +66,7 @@ export default function DashboardLayout({
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
+  const [emailNotifications, setEmailNotifications] = useState(true);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
   const primaryRole = roles?.[0];
@@ -82,6 +85,7 @@ export default function DashboardLayout({
       .then((data) => {
         setNotifications(data.notifications ?? []);
         setUnreadCount(data.unreadCount ?? 0);
+        setEmailNotifications(data.emailNotifications ?? true);
       })
       .catch(() => {});
   }, []);
@@ -102,6 +106,16 @@ export default function DashboardLayout({
     });
     setUnreadCount(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleEmailToggle = async (checked: boolean) => {
+    setEmailNotifications(checked);
+    const res = await fetch("/api/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emailNotifications: checked }),
+    });
+    if (!res.ok) setEmailNotifications(!checked);
   };
 
   const handleNotificationClick = (notif: NotificationItem) => {
@@ -258,6 +272,21 @@ export default function DashboardLayout({
                   Marcar todas como leídas
                 </Typography>
               )}
+            </Box>
+            <Box sx={{ px: 2, pb: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={emailNotifications}
+                    onChange={(e) => handleEmailToggle(e.target.checked)}
+                  />
+                }
+                label={<Typography variant="body2">Recibir avisos por correo</Typography>}
+              />
+              <Typography variant="caption" color="text.secondary" component="div">
+                Solo afecta los correos personales, no los enviados a la lista del consejo.
+              </Typography>
             </Box>
             <Divider />
             {notifications.length === 0 ? (

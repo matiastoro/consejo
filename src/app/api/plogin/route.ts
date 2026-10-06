@@ -129,7 +129,13 @@ export async function GET(request: NextRequest) {
     ? "__Secure-next-auth.session-token"
     : "next-auth.session-token";
 
-  const response = NextResponse.redirect(new URL("/dashboard", base));
+  // Destino guardado por /auth/signin (p. ej. el enlace de un correo).
+  const saved = request.cookies.get("post_login_redirect")?.value;
+  const target =
+    saved && saved.startsWith("/") && !saved.startsWith("//") ? saved : "/dashboard";
+
+  const response = NextResponse.redirect(new URL(target, base));
+  response.cookies.delete("post_login_redirect");
   response.cookies.set(cookieName, sessionJwt, {
     httpOnly: true,
     secure: !!isSecure,

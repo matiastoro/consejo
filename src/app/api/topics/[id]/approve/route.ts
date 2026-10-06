@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { notifyProvisionalVoteByEmail } from "@/lib/notify-email";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, isDirector } from "@/lib/session";
 
@@ -34,6 +35,15 @@ export async function POST(
       where: { id },
       data: { status: "DISCUSSING" },
     });
+    if (updated.requiresProvisionalVote) {
+      after(async () => {
+        try {
+          await notifyProvisionalVoteByEmail(id, user.id);
+        } catch (e) {
+          console.error("Error notificando voto provisorio por correo:", e);
+        }
+      });
+    }
     return NextResponse.json(updated);
   } else {
     await prisma.topic.delete({ where: { id } });

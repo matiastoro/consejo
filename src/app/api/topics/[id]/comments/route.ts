@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, forbidden, isRecused } from "@/lib/session";
+import { notifyCommentByEmail } from "@/lib/notify-email";
 
 export async function POST(
   request: NextRequest,
@@ -37,6 +38,15 @@ export async function POST(
       user: { select: { id: true, name: true, roles: true } },
       attachments: true,
     },
+  });
+
+  // Correo a los integrantes después de responder, para no bloquear al usuario.
+  after(async () => {
+    try {
+      await notifyCommentByEmail(comment.id);
+    } catch (e) {
+      console.error("Error notificando comentario por correo:", e);
+    }
   });
 
   return NextResponse.json(comment, { status: 201 });

@@ -40,10 +40,20 @@ export default function CommentSection({
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length]);
+
+  // Enlace desde el correo (/temas/:id#comentar): llevar al cuadro de respuesta.
+  useEffect(() => {
+    if (window.location.hash !== "#comentar") return;
+    const el = textInputRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.focus({ preventScroll: true });
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -220,7 +230,7 @@ export default function CommentSection({
           </Box>
         )}
 
-        <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+        <Box id="comentar" sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -236,6 +246,7 @@ export default function CommentSection({
             <AttachFileIcon />
           </IconButton>
           <TextField
+            inputRef={textInputRef}
             fullWidth
             multiline
             maxRows={4}

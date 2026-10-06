@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { notifyProvisionalVoteByEmail } from "@/lib/notify-email";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, forbidden, isDirector, canViewTopic, isRecused } from "@/lib/session";
 
@@ -159,6 +160,19 @@ export async function PUT(
         userId: user.id,
         ...entry,
       })),
+    });
+  }
+
+  // Voto provisorio recién activado (o tema que pasa a discusión con él).
+  if (updated.requiresProvisionalVote &&
+    updated.status === "DISCUSSING" &&
+    !(topic.requiresProvisionalVote && topic.status === "DISCUSSING")) {
+    after(async () => {
+      try {
+        await notifyProvisionalVoteByEmail(id, user.id);
+      } catch (e) {
+        console.error("Error notificando voto provisorio por correo:", e);
+      }
     });
   }
 

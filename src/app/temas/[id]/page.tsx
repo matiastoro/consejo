@@ -149,7 +149,11 @@ export default function TopicDetailPage() {
   }, [topicId]);
 
   useEffect(() => {
-    if (authStatus === "unauthenticated") router.replace("/auth/signin");
+    if (authStatus === "unauthenticated") {
+      // Conserva el destino (p. ej. el enlace de un correo) para volver tras el login.
+      const back = window.location.pathname + window.location.search + window.location.hash;
+      router.replace(`/auth/signin?callbackUrl=${encodeURIComponent(back)}`);
+    }
   }, [authStatus, router]);
 
   useEffect(() => {
@@ -399,7 +403,7 @@ export default function TopicDetailPage() {
       )}
 
       {topic.requiresProvisionalVote && topic.status === "DISCUSSING" && (
-        <>
+        <Box id="voto-provisorio">
           <ProvisionalVotePanel
             topicId={topicId}
             provisionalVotes={topic.provisionalVotes}
@@ -408,7 +412,7 @@ export default function TopicDetailPage() {
             onVoted={fetchTopic}
           />
           <Divider sx={{ my: 3 }} />
-        </>
+        </Box>
       )}
 
       {topic.status === "DISCUSSING" && !topic.inPersonOnly && !topic.requiresProvisionalVote && (

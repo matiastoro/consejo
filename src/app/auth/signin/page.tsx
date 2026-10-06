@@ -24,6 +24,15 @@ function SignInForm() {
       : error;
 
   const vtiLoginUrl = process.env.NEXT_PUBLIC_VTI_LOGIN_URL;
+  const callbackUrl = searchParams.get("callbackUrl");
+
+  // El SSO vuelve siempre a /api/plogin; el destino viaja en una cookie de corta
+  // vida. Solo rutas internas, para no abrir una redirección arbitraria.
+  const rememberCallback = () => {
+    if (callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")) {
+      document.cookie = `post_login_redirect=${encodeURIComponent(callbackUrl)}; path=/; max-age=600; samesite=lax`;
+    }
+  };
 
   return (
     <Box
@@ -73,6 +82,7 @@ function SignInForm() {
             fullWidth
             size="large"
             href={vtiLoginUrl}
+            onClick={rememberCallback}
             disabled={!vtiLoginUrl}
             startIcon={<LoginIcon />}
             sx={{ py: 1.5, fontSize: "0.95rem" }}

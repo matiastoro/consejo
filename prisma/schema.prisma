@@ -63,6 +63,8 @@ model User {
   image         String?
   roles         UserRole[] @default([PROFESOR])
   isAdmin       Boolean    @default(false)
+  // Avisos individuales por correo (no afecta los enviados a la lista del consejo)
+  emailNotifications Boolean @default(true)
   fullName      String?
   rut           String?    @unique
   createdAt     DateTime   @default(now())

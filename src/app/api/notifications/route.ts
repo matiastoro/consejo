@@ -16,7 +16,16 @@ export async function GET() {
     where: { userId: user.id, read: false },
   });
 
-  return NextResponse.json({ notifications, unreadCount });
+  const pref = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { emailNotifications: true },
+  });
+
+  return NextResponse.json({
+    notifications,
+    unreadCount,
+    emailNotifications: pref?.emailNotifications ?? true,
+  });
 }
 
 export async function PUT(request: NextRequest) {
@@ -24,10 +33,18 @@ export async function PUT(request: NextRequest) {
   if (!user) return unauthorized();
 
   const body = await request.json();
-  const { notificationIds, markAllRead } = body as {
+  const { notificationIds, markAllRead, emailNotifications } = body as {
     notificationIds?: string[];
     markAllRead?: boolean;
+    emailNotifications?: boolean;
   };
+
+  if (typeof emailNotifications === "boolean") {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailNotifications },
+    });
+  }
 
   if (markAllRead) {
     await prisma.notification.updateMany({
