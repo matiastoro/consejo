@@ -75,7 +75,10 @@
     "title": "Discussion",
     "placeholder": "Write a comment...",
     "send": "Send",
-    "noComments": "No comments yet"
+    "noComments": "No comments yet",
+    "spellcheck": "Fix spelling with AI",
+    "spellcheckRevert": "Revert to original text",
+    "spellcheckError": "Could not correct the text"
   },
   "dashboard": {
     "welcome": "Welcome to the Department Council",

@@ -75,7 +75,10 @@
     "title": "Discusión",
     "placeholder": "Escribe un comentario...",
     "send": "Enviar",
-    "noComments": "No hay comentarios aún"
+    "noComments": "No hay comentarios aún",
+    "spellcheck": "Corregir ortografía con IA",
+    "spellcheckRevert": "Revertir al texto original",
+    "spellcheckError": "No se pudo corregir el texto"
   },
   "dashboard": {
     "welcome": "Bienvenido al Consejo Departamental",

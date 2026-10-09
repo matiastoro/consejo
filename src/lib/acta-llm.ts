@@ -8,12 +8,12 @@
 // misma GPU. El timeout es amplio porque corre en segundo plano y el modelo
 // razona antes de responder.
 
-const BASE_URL = process.env.AI_PROVIDER_BASE_URL?.replace(/\/+$/, "");
-const MODEL = process.env.AI_MODEL_NAME ?? "qwen3.5:9b";
+import { chatCompletion, isLlmEnabled, stripThink } from "./llm";
+
 const TIMEOUT_MS = Number(process.env.ACTA_LLM_TIMEOUT_MS ?? 60000);
 
 export function isActaLlmEnabled(): boolean {
-  return Boolean(BASE_URL);
+  return isLlmEnabled();
 }
 
 export interface ActaPointText {
@@ -30,10 +30,6 @@ export interface ActaTopicInput {
   material: string;
 }
 
-// Este qwen3.5 en Ollama ignora /no_think, think:false y enable_thinking: razona
-// igual (5-30k tokens, 12-25s). El truco que SÍ lo apaga es prellenar el turno
-// del asistente con <think></think>: el modelo continúa después y no razona
-// (reasoning=0, ~0.3s). Ver ASSISTANT_PREFILL más abajo.
 const SYSTEM_PROMPT =
   "Eres un editor que redacta actas formales del Consejo del Departamento de " +
   "Ciencias de la Computación (Universidad de Chile) en español de Chile. " +
@@ -45,14 +41,6 @@ const SYSTEM_PROMPT =
   "decisión tal cual (su inicio: \"Aprobado por el Consejo\", \"Se rechazó\" o " +
   "\"Se discutió\") y mantén montos, nombres y fechas textuales. Sin markdown, " +
   "sin viñetas, sin repetir etiquetas como \"Decisión:\" o \"Material:\".";
-
-// Prefill del turno del asistente: cierra el bloque de razonamiento para que el
-// modelo no lo genere y responda directo.
-const ASSISTANT_PREFILL = "<think></think>\n";
-
-function stripThink(text: string): string {
-  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-}
 
 // Extrae el JSON de la respuesta: arreglo, o un objeto suelto (que el modelo
 // devuelve cuando hay un solo tema) envuelto en arreglo. Tolera texto o ```json.
@@ -88,7 +76,7 @@ export async function summarizeActaPoints(
   inputs: ActaTopicInput[],
   fallback: ActaPointText[]
 ): Promise<ActaPointText[]> {
-  if (!BASE_URL || inputs.length === 0) return fallback;
+  if (!isLlmEnabled() || inputs.length === 0) return fallback;
 
   const userContent =
     "Resume los siguientes temas del acta. Devuelve SOLO un arreglo JSON, un " +
@@ -105,30 +93,11 @@ export async function summarizeActaPoints(
 
   const points = fallback;
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.2,
-        stream: false,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-          { role: "assistant", content: ASSISTANT_PREFILL },
-        ],
-      }),
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeout));
-
-    if (!res.ok) {
-      console.warn(`[acta-llm] respuesta ${res.status}; se usa el texto crudo`);
-      return points;
-    }
-    const data = await res.json();
-    const content: string = data?.choices?.[0]?.message?.content ?? "";
+    const content = await chatCompletion({
+      system: SYSTEM_PROMPT,
+      user: userContent,
+      timeoutMs: TIMEOUT_MS,
+    });
     const arr = extractArray(content);
     if (!arr || arr.length !== points.length) {
       console.warn(

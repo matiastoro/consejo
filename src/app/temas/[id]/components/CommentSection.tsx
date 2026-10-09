@@ -12,6 +12,10 @@ import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import SpellcheckIcon from "@mui/icons-material/Spellcheck";
+import UndoIcon from "@mui/icons-material/Undo";
+import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
 import AttachmentList, { AttachmentItem } from "./AttachmentList";
 import { useFileDrop } from "./useFileDrop";
 
@@ -38,6 +42,11 @@ export default function CommentSection({
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [spellcheckEnabled, setSpellcheckEnabled] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
+  // Texto previo a la corrección, para revertir si la IA lo empeora.
+  const [beforeCorrection, setBeforeCorrection] = useState<string | null>(null);
+  const [correctionError, setCorrectionError] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
@@ -45,6 +54,13 @@ export default function CommentSection({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments.length]);
+
+  useEffect(() => {
+    fetch("/api/spellcheck")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setSpellcheckEnabled(Boolean(d?.enabled)))
+      .catch(() => {});
+  }, []);
 
   // Enlace desde el correo (/temas/:id#comentar): llevar al cuadro de respuesta.
   useEffect(() => {
@@ -94,10 +110,41 @@ export default function CommentSection({
         });
       }
       setContent("");
+      setBeforeCorrection(null);
       setFiles([]);
       onCommentAdded();
     }
     setLoading(false);
+  };
+
+  const handleCorrect = async () => {
+    if (!content.trim()) return;
+    setCorrecting(true);
+    setCorrectionError(false);
+    const original = content;
+    try {
+      const res = await fetch("/api/spellcheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: original }),
+      });
+      const data = res.ok ? await res.json() : null;
+      if (typeof data?.text === "string") {
+        setContent(data.text);
+        if (data.text !== original) setBeforeCorrection(original);
+      } else {
+        setCorrectionError(true);
+      }
+    } catch {
+      setCorrectionError(true);
+    }
+    setCorrecting(false);
+  };
+
+  const handleRevert = () => {
+    if (beforeCorrection === null) return;
+    setContent(beforeCorrection);
+    setBeforeCorrection(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -254,10 +301,36 @@ export default function CommentSection({
             maxRows={15}
             placeholder={t("comments.placeholder")}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              setCorrectionError(false);
+            }}
             onKeyDown={handleKeyDown}
-            disabled={loading}
+            disabled={loading || correcting}
+            error={correctionError}
+            helperText={correctionError ? t("comments.spellcheckError") : undefined}
           />
+          {spellcheckEnabled && (
+            <Tooltip title={t("comments.spellcheck")}>
+              <span>
+                <IconButton
+                  onClick={handleCorrect}
+                  disabled={loading || correcting || !content.trim()}
+                >
+                  {correcting ? <CircularProgress size={20} /> : <SpellcheckIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+          {beforeCorrection !== null && (
+            <Tooltip title={t("comments.spellcheckRevert")}>
+              <span>
+                <IconButton onClick={handleRevert} disabled={loading || correcting}>
+                  <UndoIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
           <IconButton
             color="primary"
             onClick={handleSend}
