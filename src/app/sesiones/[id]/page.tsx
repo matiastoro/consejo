@@ -29,6 +29,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import GroupIcon from "@mui/icons-material/Group";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import AttendanceDialog from "./components/AttendanceDialog";
 import ActaAttachmentsDialog from "./components/ActaAttachmentsDialog";
@@ -83,6 +84,7 @@ export default function SessionDetailPage() {
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [actaMenuAnchor, setActaMenuAnchor] = useState<null | HTMLElement>(null);
+  const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<null | HTMLElement>(null);
   const [acta, setActa] = useState<ActaStatus | null>(null);
 
   const roles = (session?.user as any)?.roles as string[] | undefined;
@@ -156,8 +158,10 @@ export default function SessionDetailPage() {
     fetchActaStatus();
   };
 
-  const handleDownloadActa = () => {
-    window.open(`/api/sessions/${sessionId}/acta`, "_blank");
+  const handleDownloadActa = (format: "pdf" | "md") => {
+    setDownloadMenuAnchor(null);
+    const query = format === "md" ? "?format=md" : "";
+    window.open(`/api/sessions/${sessionId}/acta${query}`, "_blank");
   };
 
   // Genera directo (sin IA) o abre el menú con las dos variantes si hay IA.
@@ -284,10 +288,29 @@ export default function SessionDetailPage() {
               <Button
                 variant="contained"
                 startIcon={<DownloadIcon />}
-                onClick={handleDownloadActa}
+                endIcon={<ArrowDropDownIcon />}
+                onClick={(e) => setDownloadMenuAnchor(e.currentTarget)}
               >
                 Descargar acta
               </Button>
+              <Menu
+                anchorEl={downloadMenuAnchor}
+                open={Boolean(downloadMenuAnchor)}
+                onClose={() => setDownloadMenuAnchor(null)}
+              >
+                <MenuItem onClick={() => handleDownloadActa("pdf")}>
+                  <ListItemIcon>
+                    <PictureAsPdfIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="PDF" secondary="Con logos y anexos incluidos" />
+                </MenuItem>
+                <MenuItem onClick={() => handleDownloadActa("md")}>
+                  <ListItemIcon>
+                    <DescriptionIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Markdown" secondary="Texto editable; anexos listados por nombre" />
+                </MenuItem>
+              </Menu>
               <Button
                 variant="outlined"
                 startIcon={<AutorenewIcon />}

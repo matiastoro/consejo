@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized, isDirector } from "@/lib/session";
-import { buildActaPdf, saveActaFile } from "@/lib/acta-build";
+import { buildActa, saveActaFile } from "@/lib/acta-build";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +15,8 @@ const inFlight = new Set<string>();
 // no quede bloqueada mientras el LLM trabaja.
 async function runGeneration(sessionId: string, useLlm: boolean) {
   try {
-    const buffer = await buildActaPdf(sessionId, useLlm);
-    const saved = await saveActaFile(sessionId, buffer);
+    const { pdf, markdown } = await buildActa(sessionId, useLlm);
+    const saved = await saveActaFile(sessionId, pdf, markdown);
     await prisma.sessionActa.update({
       where: { sessionId },
       data: {

@@ -9,7 +9,11 @@ import { UPLOADS_DIR, resolveAttachmentPaths } from "@/lib/uploads";
 import { activeMembersAt, formatAttendee, primaryGoverningRole } from "@/lib/acta";
 import { effectiveRoles } from "@/lib/roles";
 import { summarizeActaPoints } from "@/lib/acta-llm";
-import { renderActaToBuffer, type ActaPoint } from "@/app/api/sessions/[id]/acta/ActaDocument";
+import {
+  renderActaToBuffer,
+  type ActaData,
+  type ActaPoint,
+} from "@/app/api/sessions/[id]/acta/ActaDocument";
 
 const RESOLVED = ["APROBADO", "RECHAZADO", "CERRADO"] as const;
 
@@ -70,7 +74,47 @@ function buildMaterial(
   return text.length > 4000 ? `${text.slice(0, 4000)}…` : text;
 }
 
-export async function buildActaPdf(sessionId: string, useLlm: boolean): Promise<Buffer> {
+// Versión Markdown del acta, con el mismo contenido que el PDF. Los anexos no
+// se pueden incrustar, así que se listan por nombre de archivo.
+function renderActaMarkdown(data: ActaData, annexes: string[]): string {
+  const lines: string[] = [
+    "# Consejo DCC",
+    "",
+    `**Fecha:** ${data.dateLabel}  `,
+    `**Lugar:** ${data.location}`,
+  ];
+  if (data.attendees.length > 0) {
+    lines[lines.length - 1] += "  ";
+    lines.push(`**Asisten:** ${data.attendees.join(", ")}.`);
+  }
+  if (data.guests.length > 0) {
+    lines[lines.length - 1] += "  ";
+    lines.push(`**Invitados:** ${data.guests.join(", ")}.`);
+  }
+  lines.push("", `Durante el Consejo del ${data.dateLabel}, se abordaron los siguientes puntos:`, "");
+  data.points.forEach((p, i) => {
+    const lead = p.resolution ? `**${p.resolution}**` : "";
+    const body = [lead, p.context].filter(Boolean).join(" ");
+    lines.push(`${i + 1}. ${body}`);
+  });
+  if (annexes.length > 0) {
+    lines.push("", "## Anexos", "");
+    annexes.forEach((name, i) => lines.push(`${i + 1}. ${name}`));
+  }
+  lines.push(
+    "",
+    "---",
+    "",
+    `*Consejo Departamental · Departamento de Ciencias de la Computación · Universidad de Chile. Generado el ${data.generatedLabel}.*`,
+    ""
+  );
+  return lines.join("\n");
+}
+
+export async function buildActa(
+  sessionId: string,
+  useLlm: boolean
+): Promise<{ pdf: Buffer; markdown: string }> {
   const session = await prisma.councilSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -89,7 +133,7 @@ export async function buildActaPdf(sessionId: string, useLlm: boolean): Promise<
       },
       actaAttachments: {
         orderBy: { order: "asc" },
-        include: { attachment: { select: { id: true, fileUrl: true } } },
+        include: { attachment: { select: { id: true, fileUrl: true, fileName: true } } },
       },
     },
   });
@@ -172,14 +216,16 @@ export async function buildActaPdf(sessionId: string, useLlm: boolean): Promise<
     year: "numeric",
   });
 
-  const actaBuffer = await renderActaToBuffer({
+  const data: ActaData = {
     dateLabel,
     location: session.location,
     attendees,
     guests,
     points,
     generatedLabel,
-  });
+  };
+  const actaBuffer = await renderActaToBuffer(data);
+  const annexes: string[] = [];
 
   // --- Anexar PDFs seleccionados ---
   const merged = await PDFDocument.load(actaBuffer);
@@ -195,23 +241,36 @@ export async function buildActaPdf(sessionId: string, useLlm: boolean): Promise<
       const src = await PDFDocument.load(bytes);
       const pages = await merged.copyPages(src, src.getPageIndices());
       pages.forEach((pg) => merged.addPage(pg));
+      annexes.push(sel.attachment.fileName);
     } catch {
       // PDF corrupto o cifrado: se omite sin romper el acta.
     }
   }
 
-  return Buffer.from(await merged.save());
+  return {
+    pdf: Buffer.from(await merged.save()),
+    markdown: renderActaMarkdown(data, annexes),
+  };
 }
 
-// Guarda el PDF del acta en disco (sobrescribe el anterior) y devuelve el
-// fileUrl relativo y el tamaño, para registrarlos en SessionActa.
+// Guarda el PDF del acta en disco (sobrescribe el anterior) y, al lado, su
+// versión Markdown con el mismo nombre y extensión .md (ver actaMarkdownUrl).
+// Devuelve el fileUrl relativo del PDF y su tamaño, para registrarlos en
+// SessionActa.
 export async function saveActaFile(
   sessionId: string,
-  buffer: Buffer
+  pdf: Buffer,
+  markdown: string
 ): Promise<{ fileUrl: string; fileSize: number }> {
   const dir = path.join(UPLOADS_DIR, "actas");
   await mkdir(dir, { recursive: true });
   const fileName = `${sessionId}.pdf`;
-  await writeFile(path.join(dir, fileName), buffer);
-  return { fileUrl: `/uploads/actas/${fileName}`, fileSize: buffer.length };
+  await writeFile(path.join(dir, fileName), pdf);
+  await writeFile(path.join(dir, `${sessionId}.md`), markdown, "utf8");
+  return { fileUrl: `/uploads/actas/${fileName}`, fileSize: pdf.length };
+}
+
+// fileUrl del Markdown que acompaña al PDF del acta.
+export function actaMarkdownUrl(pdfUrl: string): string {
+  return pdfUrl.replace(/\.pdf$/i, ".md");
 }

@@ -3,14 +3,16 @@ import { readFile } from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser, unauthorized } from "@/lib/session";
 import { resolveAttachmentPaths } from "@/lib/uploads";
+import { actaMarkdownUrl } from "@/lib/acta-build";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Entrega el acta cacheada de la sesión. La generación corre aparte (POST
-// .../acta/generate); aquí solo se sirve el PDF ya listo.
+// .../acta/generate); aquí solo se sirve el archivo ya listo: PDF por omisión,
+// o Markdown con ?format=md.
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getAuthUser();
@@ -34,21 +36,30 @@ export async function GET(
     );
   }
 
-  const candidates = resolveAttachmentPaths(acta.fileUrl);
+  const asMarkdown = request.nextUrl.searchParams.get("format") === "md";
+  const fileUrl = asMarkdown ? actaMarkdownUrl(acta.fileUrl) : acta.fileUrl;
+
+  const candidates = resolveAttachmentPaths(fileUrl);
   let data: Buffer | null = null;
   for (const filePath of candidates) {
     data = await readFile(filePath).catch(() => null);
     if (data) break;
   }
   if (!data) {
-    return NextResponse.json({ error: "Archivo del acta no encontrado" }, { status: 404 });
+    // Las actas generadas antes de existir la versión Markdown no la tienen.
+    const error = asMarkdown
+      ? "Esta acta no tiene versión Markdown; regenérala"
+      : "Archivo del acta no encontrado";
+    return NextResponse.json({ error }, { status: 404 });
   }
 
-  const fileName = `acta-${session.title.replace(/\s+/g, "-").toLowerCase()}.pdf`;
+  const baseName = `acta-${session.title.replace(/\s+/g, "-").toLowerCase()}`;
   return new NextResponse(new Uint8Array(data), {
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${fileName}"`,
+      "Content-Type": asMarkdown ? "text/markdown; charset=utf-8" : "application/pdf",
+      "Content-Disposition": asMarkdown
+        ? `attachment; filename="${baseName}.md"`
+        : `inline; filename="${baseName}.pdf"`,
       "Content-Length": String(data.length),
       "Cache-Control": "private, no-store",
     },
