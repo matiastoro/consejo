@@ -17,6 +17,8 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import AttachmentList, { AttachmentItem } from "./AttachmentList";
 import { useFileDrop } from "./useFileDrop";
+import { useSpellcheck, SpellcheckButtons } from "./useSpellcheck";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 
 interface Note {
   id: string;
@@ -33,10 +35,12 @@ interface Props {
 }
 
 export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
+  const { t } = useI18n();
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
+  const spellcheck = useSpellcheck(content, setContent);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,6 +83,7 @@ export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
         });
       }
       setContent("");
+      spellcheck.reset();
       setFiles([]);
       onNoteAdded();
     }
@@ -214,11 +219,17 @@ export default function TopicNotes({ topicId, notes, onNoteAdded }: Props) {
               maxRows={15}
               placeholder="Agregar un avance o apunte..."
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                spellcheck.clearError();
+              }}
               onKeyDown={handleKeyDown}
-              disabled={loading}
+              disabled={loading || spellcheck.correcting}
+              error={spellcheck.error}
+              helperText={spellcheck.error ? t("comments.spellcheckError") : undefined}
               size="small"
             />
+            <SpellcheckButtons spellcheck={spellcheck} content={content} disabled={loading} size="small" />
             <IconButton
               color="primary"
               onClick={handleSend}

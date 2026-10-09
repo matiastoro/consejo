@@ -10,7 +10,7 @@ const TIMEOUT_MS = Number(process.env.SPELLCHECK_LLM_TIMEOUT_MS ?? 30000);
 
 const SYSTEM_PROMPT =
   "Eres un corrector ortográfico de español de Chile. Recibes un comentario " +
-  "escrito en una discusión del Consejo del Departamento de Ciencias de la " +
+  "o un apunte de avance escrito en un tema del Consejo del Departamento de Ciencias de la " +
   "Computación. Corrige solo ortografía, tildes, puntuación, mayúsculas y " +
   "errores de tipeo. No cambies el sentido, el tono, el registro ni la " +
   "elección de palabras; no agregues ni quites contenido. Conserva los saltos " +
